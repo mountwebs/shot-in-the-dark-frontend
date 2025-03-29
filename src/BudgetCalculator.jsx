@@ -228,18 +228,48 @@ const BudgetCalculator = () => {
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    const formData = {
+      title,
+      companyName,
+      email,
+      budget,
+      daysInOslo,
+      daysOutOfOslo,
+      locations,
+      keywords,
+      equipment,
+      currency,
+    };
+
+    console.log(JSON.stringify(formData));
+
+    try {
+      const response = await fetch('https://stiangk.dev/api/shot-in-the-dark', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit form');
+      }
+
       setIsSubmitting(false);
       setSuccess(true);
-    }, 1500);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setIsSubmitting(false);
+      setErrors({ submit: 'Failed to submit the form. Please try again later.' });
+    }
   };
 
   // Effect to update locations when both in/out of Oslo selected
@@ -378,8 +408,8 @@ const BudgetCalculator = () => {
                           key={type.id}
                           type="button"
                           className={`px-3 py-2 text-sm rounded-md transition-colors ${keywords.includes(type.id)
-                              ? 'bg-black text-white'
-                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            ? 'bg-black text-white'
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                             }`}
                           onClick={() => toggleKeyword(type.id)}
                         >
@@ -398,8 +428,8 @@ const BudgetCalculator = () => {
                           key={req.id}
                           type="button"
                           className={`px-3 py-2 text-sm rounded-md transition-colors ${keywords.includes(req.id)
-                              ? 'bg-black text-white'
-                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            ? 'bg-black text-white'
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                             }`}
                           onClick={() => toggleKeyword(req.id)}
                         >
@@ -483,8 +513,8 @@ const BudgetCalculator = () => {
                   <div key={equip} className="border border-gray-200 rounded-md overflow-hidden">
                     <div
                       className={`p-3 cursor-pointer transition-all ${equipment.some(item => item.type === equip)
-                          ? 'bg-black text-white'
-                          : 'bg-gray-50 hover:bg-gray-100'
+                        ? 'bg-black text-white'
+                        : 'bg-gray-50 hover:bg-gray-100'
                         }`}
                       onClick={() => toggleEquipment(equip)}
                     >
