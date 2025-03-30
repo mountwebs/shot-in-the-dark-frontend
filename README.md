@@ -1,3 +1,9 @@
+# Instructions
+1. Clone repository: In terminal - "git clone https://github.com/mountwebs/shot-in-the-dark-frontend"
+2. "cd shot-in-the-dark-frontend"
+3. Install requirement "pnpm i"
+4. Run dev: "pnpm dev"
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
