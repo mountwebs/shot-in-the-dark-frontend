@@ -1,5 +1,5 @@
 # Instructions
-1. Clone repository: In terminal - "git clone https://github.com/mountwebs/shot-in-the-dark-frontend"
+1. Clone repository: In terminal (from the folder you want to install the repo) - "git clone https://github.com/mountwebs/shot-in-the-dark-frontend"
 2. "cd shot-in-the-dark-frontend"
 3. Install requirement "pnpm i"
 4. Run dev: "pnpm dev"
