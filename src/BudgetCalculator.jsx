@@ -313,15 +313,6 @@ const BudgetCalculator = () => {
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Left side - Basic info */}
         <div className="w-full lg:w-5/12">
-          <h1 className="text-4xl font-bold mb-4">Estimate you price</h1>
-          <p className="text-gray-800 mb-2">
-            This calculator estimates costs based on key variables, providing a clear overview of resource allocation.
-          </p>
-          <p className="text-gray-500 mb-6">
-            Acknowledging the early stage of production, consider this a preliminary draft.
-            We'll collaborate closely to refine options tailored to your needs.
-          </p>
-
           <div className="mb-8">
             <div className="space-y-4">
               <input
@@ -446,12 +437,6 @@ const BudgetCalculator = () => {
 
         {/* Right side - Production details */}
         <div className="w-full lg:w-7/12 bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-          <div className="mb-2 flex items-center">
-            <div className="w-4 h-4 rounded-sm bg-gray-200 mr-2 flex items-center justify-center">
-              <Check className="w-3 h-3 text-gray-500" />
-            </div>
-            <span className="text-gray-800 font-medium">Fill in your info and get your estimate</span>
-          </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Shooting days and locations row */}
@@ -551,39 +536,53 @@ const BudgetCalculator = () => {
               </div>
             </div>
 
-            {/* Summary */}
-            <div className="bg-gray-50 p-4 rounded-md mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Request Summary</h3>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="text-gray-500">Total Shooting Days:</div>
-                <div>{totalDays} day{totalDays !== 1 ? 's' : ''}</div>
+{/* Summary */}
+<div className="bg-gray-50 p-3 rounded-md mb-4">
+  <h3 className="text-base font-semibold text-gray-800 mb-2">Project Summary</h3>
+  <div className="grid grid-cols-2 gap-2 text-sm">
+    <div className="text-gray-500">Total Shooting Days:</div>
+    <div>{totalDays} day{totalDays !== 1 ? 's' : ''}</div>
 
-                <div className="text-gray-500">Budget:</div>
-                <div>{formatNumber(budget)} {currencySettings[currency].symbol}</div>
+    <div className="text-gray-500">Budget:</div>
+    <div>{formatNumber(budget)} {currencySettings[currency].symbol}</div>
 
-                <div className="text-gray-500">Production Type:</div>
-                <div>{keywords.filter(id => productionTypes.some(pt => pt.id === id)).length > 0
-                  ? keywords
-                    .filter(id => productionTypes.some(pt => pt.id === id))
-                    .map(k => productionTypes.find(pt => pt.id === k)?.label)
-                    .join(', ')
-                  : 'None selected'}</div>
+    <div className="text-gray-500">Production Type:</div>
+    <div>
+      {keywords.filter((id) =>
+        productionTypes.some((pt) => pt.id === id)
+      ).length > 0
+        ? keywords
+            .filter((id) => productionTypes.some((pt) => pt.id === id))
+            .map((k) => productionTypes.find((pt) => pt.id === k)?.label)
+            .join(', ')
+        : 'None selected'}
+    </div>
 
-                <div className="text-gray-500">Service Requirements:</div>
-                <div>{keywords.filter(id => serviceRequirements.some(sr => sr.id === id)).length > 0
-                  ? keywords
-                    .filter(id => serviceRequirements.some(sr => sr.id === id))
-                    .map(k => serviceRequirements.find(sr => sr.id === k)?.label)
-                    .join(', ')
-                  : 'None selected'}</div>
+    <div className="text-gray-500">Service Requirements:</div>
+    <div>
+      {keywords.filter((id) =>
+        serviceRequirements.some((sr) => sr.id === id)
+      ).length > 0
+        ? keywords
+            .filter((id) => serviceRequirements.some((sr) => sr.id === id))
+            .map((k) => serviceRequirements.find((sr) => sr.id === k)?.label)
+            .join(', ')
+        : 'None selected'}
+    </div>
 
-                <div className="text-gray-500">Special Equipment:</div>
-                <div>{equipment.length > 0
-                  ? equipment.map(item => `${item.type} (${item.days} day${item.days !== 1 ? 's' : ''})`)
-                    .join(', ')
-                  : 'None selected'}</div>
-              </div>
-            </div>
+    <div className="text-gray-500">Special Equipment:</div>
+    <div>
+      {equipment.length > 0
+        ? equipment
+            .map(
+              (item) =>
+                `${item.type} (${item.days} day${item.days !== 1 ? 's' : ''})`
+            )
+            .join(', ')
+        : 'None selected'}
+    </div>
+  </div>
+</div>
 
             <div className="space-y-4">
               <button

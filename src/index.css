@@ -1,10 +1,15 @@
+/* index.css */
+
+/* Generic root settings */
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
+  /* color-scheme toggles between light/dark but you might want to remove it if using Tailwind's dark mode classes. */
+  color-scheme: light dark; 
+  /* Keep body background neutral if you'd like, or rely on Tailwind. */
+  color: rgba(255, 255, 255, 0.87); 
   background-color: #242424;
 
   font-synthesis: none;
@@ -13,6 +18,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Global anchor styles */
 a {
   font-weight: 500;
   color: #646cff;
@@ -22,6 +28,7 @@ a:hover {
   color: #535bf2;
 }
 
+/* Body default styles, if needed */
 body {
   margin: 0;
   display: flex;
@@ -30,11 +37,17 @@ body {
   min-height: 100vh;
 }
 
+/* Headings */
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
 }
 
+/* -------------------------------------------------------------- */
+/* Option A: Completely remove or comment out global button style */
+/* -------------------------------------------------------------- */
+
+/*
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -42,7 +55,7 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #1a1a1a;  <--- This overrides Tailwind's bg-black if loaded last
   cursor: pointer;
   transition: border-color 0.25s;
 }
@@ -53,7 +66,33 @@ button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
+*/
 
+/* -------------------------------------------------------------- */
+/* Option B: Narrow the scope, e.g. style only .global-button     */
+/* -------------------------------------------------------------- */
+/*
+button.global-button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button.global-button:hover {
+  border-color: #646cff;
+}
+button.global-button:focus,
+button.global-button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+*/
+
+/* Light mode overrides (if using color-scheme) */
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
@@ -62,7 +101,10 @@ button:focus-visible {
   a:hover {
     color: #747bff;
   }
-  button {
+  /* If you want a default background for your .global-button in light mode: */
+  /*
+  button.global-button {
     background-color: #f9f9f9;
   }
+  */
 }
