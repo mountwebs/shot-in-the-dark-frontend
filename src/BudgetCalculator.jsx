@@ -119,14 +119,6 @@ const BudgetCalculator = () => {
       }
     }
 
-    // Fixer adjustment
-    if (keywords.includes('fixer')) {
-      if (daysOutOfOslo > 0) {
-        dailyRate += 70000;
-      } else {
-        dailyRate += 40000;
-      }
-    }
 
     // Technical equipment adjustment - reduced for stills, documentary, and music video
     if (keywords.includes('tech-equipment')) {
@@ -143,6 +135,12 @@ const BudgetCalculator = () => {
     // Location factor
     const locationFactor = 1 + (0.1 * (locations - 1));
     minBudget = minBudget * locationFactor;
+
+    // Add fixer cost only if fixer is selected and totalDays > 1
+if (keywords.includes('fixer') && totalDays > 1) {
+  const fixerCostPerDay = daysOutOfOslo > 0 ? 70000 : 40000;
+  minBudget += fixerCostPerDay * (totalDays - 1); // first day included in baseline
+}
 
     // Add special equipment
     equipment.forEach(item => {
@@ -300,7 +298,7 @@ const BudgetCalculator = () => {
         </p>
         <button
           onClick={() => setSuccess(false)}
-          className="px-6 py-3 bg-black text-white rounded-md hover:bg-gray-800 transition-colors"
+          className="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors"
         >
           Create Another Estimate
         </button>
@@ -319,7 +317,7 @@ const BudgetCalculator = () => {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className={`w-full p-4 bg-gray-50 border-0 rounded-md text-gray-900 placeholder-gray-400 ${errors.title ? 'ring-2 ring-red-500' : ''}`}
+                className={`w-full p-4 bg-gray-50 border-0 rounded-xl text-gray-900 placeholder-gray-400 ${errors.title ? 'ring-2 ring-red-500' : ''}`}
                 placeholder="Give your project a title"
               />
               {errors.title && <p className="mt-1 text-sm text-red-500">{errors.title}</p>}
@@ -329,7 +327,7 @@ const BudgetCalculator = () => {
                   type="text"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  className="w-full p-4 bg-gray-50 border-0 rounded-md text-gray-900 placeholder-gray-400"
+                  className="w-full p-4 bg-gray-50 border-0 rounded-xl text-gray-900 placeholder-gray-400"
                   placeholder="Company name (optional)"
                 />
 
@@ -337,7 +335,7 @@ const BudgetCalculator = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className={`w-full p-4 bg-gray-50 border-0 rounded-md text-gray-900 placeholder-gray-400 ${errors.email ? 'ring-2 ring-red-500' : ''}`}
+                  className={`w-full p-4 bg-gray-50 border-0 rounded-xl text-gray-900 placeholder-gray-400 ${errors.email ? 'ring-2 ring-red-500' : ''}`}
                   placeholder="Your email (required)"
                 />
               </div>
@@ -398,7 +396,7 @@ const BudgetCalculator = () => {
                         <button
                           key={type.id}
                           type="button"
-                          className={`px-3 py-2 text-sm rounded-md transition-colors ${keywords.includes(type.id)
+                          className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(type.id)
                             ? 'bg-black text-white'
                             : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                             }`}
@@ -418,7 +416,7 @@ const BudgetCalculator = () => {
                         <button
                           key={req.id}
                           type="button"
-                          className={`px-3 py-2 text-sm rounded-md transition-colors ${keywords.includes(req.id)
+                          className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(req.id)
                             ? 'bg-black text-white'
                             : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                             }`}
@@ -436,14 +434,14 @@ const BudgetCalculator = () => {
         </div>
 
         {/* Right side - Production details */}
-        <div className="w-full lg:w-7/12 bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+        <div className="w-full lg:w-7/12 bg-white rounded-2xl shadow-md p-8 border border-gray-100 space-y-6">
 
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Shooting days and locations row */}
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1">
                 <label className="block text-sm text-gray-500 mb-1">Shooting in Oslo</label>
-                <div className="bg-gray-50 p-4 rounded-md h-16 flex items-center justify-center">
+                <div className="bg-gray-50 p-4 rounded-xl h-16 flex items-center justify-center">
                   <input
                     type="number"
                     value={daysInOslo}
@@ -458,7 +456,7 @@ const BudgetCalculator = () => {
 
               <div className="space-y-1">
                 <label className="block text-sm text-gray-500 mb-1">Shooting out of Oslo</label>
-                <div className="bg-gray-50 p-4 rounded-md h-16 flex items-center justify-center">
+                <div className="bg-gray-50 p-4 rounded-xl h-16 flex items-center justify-center">
                   <input
                     type="number"
                     value={daysOutOfOslo}
@@ -473,7 +471,7 @@ const BudgetCalculator = () => {
 
               <div className="space-y-1">
                 <label className="block text-sm text-gray-500 mb-1">Number of locations</label>
-                <div className="bg-gray-50 p-4 rounded-md h-16 flex items-center justify-center">
+                <div className="bg-gray-50 p-4 rounded-xl h-16 flex items-center justify-center">
                   <input
                     type="number"
                     value={locations}
@@ -495,7 +493,7 @@ const BudgetCalculator = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 {equipmentOptions.map(equip => (
-                  <div key={equip} className="border border-gray-200 rounded-md overflow-hidden">
+                  <div key={equip} className="border border-gray-200 rounded-xl overflow-hidden">
                     <div
                       className={`p-3 cursor-pointer transition-all ${equipment.some(item => item.type === equip)
                         ? 'bg-black text-white'
@@ -536,50 +534,46 @@ const BudgetCalculator = () => {
               </div>
             </div>
 
-{/* Summary */}
-<div className="bg-gray-50 p-3 rounded-md mb-4">
-  <h3 className="text-base font-semibold text-gray-800 mb-2">Project Summary</h3>
-  <div className="grid grid-cols-2 gap-2 text-sm">
-    <div className="text-gray-500">Total Shooting Days:</div>
-    <div>{totalDays} day{totalDays !== 1 ? 's' : ''}</div>
+{/* Condensed Summary */}
+<div className="bg-gray-50 px-4 py-3 rounded-md mb-4">
+  <h3 className="text-base font-semibold text-center text-gray-800 mb-2">Project Summary</h3>
 
-    <div className="text-gray-500">Budget:</div>
-    <div>{formatNumber(budget)} {currencySettings[currency].symbol}</div>
+  <div className="grid grid-cols-2 gap-y-1 text-sm">
+    <div className="text-gray-500">Total Shooting Days</div>
+    <div className="text-gray-900">{totalDays} day{totalDays !== 1 ? 's' : ''}</div>
 
-    <div className="text-gray-500">Production Type:</div>
-    <div>
-      {keywords.filter((id) =>
-        productionTypes.some((pt) => pt.id === id)
-      ).length > 0
+    <div className="text-gray-500">Budget</div>
+    <div className="text-gray-900">
+      {formatNumber(budget)} {currencySettings[currency].symbol}
+    </div>
+
+    <div className="text-gray-500">Production Type</div>
+    <div className="text-gray-900">
+      {keywords.filter((id) => productionTypes.some((pt) => pt.id === id)).length > 0
         ? keywords
             .filter((id) => productionTypes.some((pt) => pt.id === id))
             .map((k) => productionTypes.find((pt) => pt.id === k)?.label)
             .join(', ')
-        : 'None selected'}
+        : '—'}
     </div>
 
-    <div className="text-gray-500">Service Requirements:</div>
-    <div>
-      {keywords.filter((id) =>
-        serviceRequirements.some((sr) => sr.id === id)
-      ).length > 0
+    <div className="text-gray-500">Service Requirements</div>
+    <div className="text-gray-900">
+      {keywords.filter((id) => serviceRequirements.some((sr) => sr.id === id)).length > 0
         ? keywords
             .filter((id) => serviceRequirements.some((sr) => sr.id === id))
             .map((k) => serviceRequirements.find((sr) => sr.id === k)?.label)
             .join(', ')
-        : 'None selected'}
+        : '—'}
     </div>
 
-    <div className="text-gray-500">Special Equipment:</div>
-    <div>
+    <div className="text-gray-500">Special Equipment</div>
+    <div className="text-gray-900">
       {equipment.length > 0
         ? equipment
-            .map(
-              (item) =>
-                `${item.type} (${item.days} day${item.days !== 1 ? 's' : ''})`
-            )
+            .map((item) => `${item.type} (${item.days}d)`)
             .join(', ')
-        : 'None selected'}
+        : '—'}
     </div>
   </div>
 </div>
@@ -587,7 +581,7 @@ const BudgetCalculator = () => {
             <div className="space-y-4">
               <button
                 type="submit"
-                className="w-full flex justify-center items-center gap-2 bg-black hover:bg-gray-800 text-white py-4 px-6 rounded-md transition-colors disabled:opacity-70"
+                className="w-full flex justify-center items-center gap-2 bg-black hover:bg-gray-800 text-white py-4 px-6 rounded-xl transition-colors disabled:opacity-70"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
