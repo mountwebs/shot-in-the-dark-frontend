@@ -401,8 +401,8 @@ const BudgetCalculator = () => {
           {/* STEP 2 - CALCULATOR */}
           {step === 2 && (
             <div className="flex flex-col lg:flex-row gap-8">
-              {/* Left side - Basic info */}
-              <div className="w-full lg:w-5/12 space-y-4">
+              {/* Left side - Basic info - Vertically centered */}
+              <div className="w-full lg:w-5/12 space-y-4 flex flex-col justify-center">
                 <input
                   type="text"
                   value={title}
@@ -440,7 +440,7 @@ const BudgetCalculator = () => {
                         const value = e.target.value.replace(/\D/g, '');
                         setBudget(value === '' ? currencySettings[currency].min : Number(value));
                       }}
-                      className={`w-full p-4 bg-gray-50 border-0 rounded-xl text-gray-900 text-xl font-medium ${errors.budget ? 'ring-2 ring-red-500' : ''}`}
+                      className={`w-full p-4 bg-gray-50 border-0 rounded-xl text-gray-900 text-xl font-medium text-center ${errors.budget ? 'ring-2 ring-red-500' : ''}`}
                       placeholder="Your budget"
                     />
                     <div className="absolute inset-y-0 right-0 flex">
@@ -455,8 +455,6 @@ const BudgetCalculator = () => {
                       </select>
                     </div>
                   </div>
-
-                  {/* Removed slider from budget input */}
                 </div>
                 {errors.budget && <p className="mt-1 text-sm text-red-500">{errors.budget}</p>}
 
@@ -464,44 +462,44 @@ const BudgetCalculator = () => {
                 <div className="mt-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Production Type */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Production Type</label>
-                      <div className="flex flex-wrap gap-2">
-                        {productionTypes.map(type => (
-                          <button
-                            key={type.id}
-                            type="button"
-                            className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(type.id)
-                              ? 'bg-black text-white'
-                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                              }`}
-                            onClick={() => toggleKeyword(type.id)}
-                          >
-                            {type.label}
-                          </button>
-                        ))}
-                      </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Production Type</label>
+                    <div className="flex flex-wrap gap-2">
+                      {productionTypes.map(type => (
+                        <button
+                          key={type.id}
+                          type="button"
+                          className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(type.id)
+                            ? 'bg-black text-white'
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                          onClick={() => toggleKeyword(type.id)}
+                        >
+                          {type.label}
+                        </button>
+                      ))}
                     </div>
+                  </div>
 
                     {/* Service Requirements */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Service Requirements</label>
-                      <div className="flex flex-wrap gap-2">
-                        {serviceRequirements.map(req => (
-                          <button
-                            key={req.id}
-                            type="button"
-                            className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(req.id)
-                              ? 'bg-black text-white'
-                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                              }`}
-                            onClick={() => toggleKeyword(req.id)}
-                          >
-                            {req.label}
-                          </button>
-                        ))}
-                      </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Service Requirements</label>
+                    <div className="flex flex-wrap gap-2">
+                      {serviceRequirements.map(req => (
+                        <button
+                          key={req.id}
+                          type="button"
+                          className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(req.id)
+                            ? 'bg-black text-white'
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                          onClick={() => toggleKeyword(req.id)}
+                        >
+                          {req.label}
+                        </button>
+                      ))}
                     </div>
+                  </div>
                   </div>
                 </div>
               </div>
@@ -702,7 +700,7 @@ const BudgetCalculator = () => {
               className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
             >
               <span className={`font-medium text-sm transition-colors duration-300 ${step === 2 ? 'text-white' : 'text-gray-700'}`}>
-                Budget
+                Inputs
               </span>
             </button>
           </div>
