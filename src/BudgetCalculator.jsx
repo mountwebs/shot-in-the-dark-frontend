@@ -376,12 +376,18 @@ const BudgetCalculator = () => {
                     sent directly to your email — and ours — for further review. This tool gives you a clear
                     starting point to understand the possibilities of filming in Norway with Line.Production.
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-gray-800 text-base mb-8">
-                    <div>
-                      <div className="font-semibold mb-1">📩 Get the budget to your inbox within seconds.</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-gray-800 mb-12">
+                    <div className="flex items-center">
+                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mr-4 border border-gray-200 flex-shrink-0">
+                        <span className="text-xl">📩</span>
+                      </div>
+                      <h3 className="text-xl font-semibold">Get the budget to your inbox.</h3>
                     </div>
-                    <div>
-                      <div className="font-semibold mb-1">🌍 Give more time to the why and where.</div>
+                    <div className="flex items-center">
+                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mr-4 border border-gray-200 flex-shrink-0">
+                        <span className="text-xl">🌍</span>
+                      </div>
+                      <h3 className="text-xl font-semibold">Focus on the why and where.</h3>
                     </div>
                   </div>
                 </div>
@@ -440,7 +446,7 @@ const BudgetCalculator = () => {
                         const value = e.target.value.replace(/\D/g, '');
                         setBudget(value === '' ? currencySettings[currency].min : Number(value));
                       }}
-                      className={`w-full p-4 bg-gray-50 border-0 rounded-xl text-gray-900 text-xl font-medium text-center ${errors.budget ? 'ring-2 ring-red-500' : ''}`}
+                      className={`w-full p-4 bg-gray-50 border-0 rounded-xl text-gray-900 text-2xl font-bold text-center ${errors.budget ? 'ring-2 ring-red-500' : ''}`}
                       placeholder="Your budget"
                     />
                     <div className="absolute inset-y-0 right-0 flex">
@@ -462,44 +468,44 @@ const BudgetCalculator = () => {
                 <div className="mt-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Production Type */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Production Type</label>
-                    <div className="flex flex-wrap gap-2">
-                      {productionTypes.map(type => (
-                        <button
-                          key={type.id}
-                          type="button"
-                          className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(type.id)
-                            ? 'bg-black text-white'
-                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                            }`}
-                          onClick={() => toggleKeyword(type.id)}
-                        >
-                          {type.label}
-                        </button>
-                      ))}
+                    <div className="space-y-4">
+                      <label className="block text-sm font-medium text-gray-700 text-left">Production Type</label>
+                      <div className="flex flex-wrap gap-2">
+                        {productionTypes.map(type => (
+                          <button
+                            key={type.id}
+                            type="button"
+                            className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(type.id)
+                              ? 'bg-black text-white'
+                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                              }`}
+                            onClick={() => toggleKeyword(type.id)}
+                          >
+                            {type.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
                     {/* Service Requirements */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Service Requirements</label>
-                    <div className="flex flex-wrap gap-2">
-                      {serviceRequirements.map(req => (
-                        <button
-                          key={req.id}
-                          type="button"
-                          className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(req.id)
-                            ? 'bg-black text-white'
-                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                            }`}
-                          onClick={() => toggleKeyword(req.id)}
-                        >
-                          {req.label}
-                        </button>
-                      ))}
+                    <div className="space-y-4">
+                      <label className="block text-sm font-medium text-gray-700 text-left">Service Requirements</label>
+                      <div className="flex flex-wrap gap-2">
+                        {serviceRequirements.map(req => (
+                          <button
+                            key={req.id}
+                            type="button"
+                            className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(req.id)
+                              ? 'bg-black text-white'
+                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                              }`}
+                            onClick={() => toggleKeyword(req.id)}
+                          >
+                            {req.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
                   </div>
                 </div>
               </div>
@@ -571,7 +577,7 @@ const BudgetCalculator = () => {
                               }`}
                             onClick={() => toggleEquipment(equip)}
                           >
-                            <div className="font-medium text-center">{equip}</div>
+                            <div className={`font-medium text-center ${equipment.some(item => item.type === equip) ? 'text-white' : 'text-gray-900'}`}>{equip}</div>
                           </div>
 
                           {equipment.some(item => item.type === equip) && (
@@ -584,7 +590,7 @@ const BudgetCalculator = () => {
                                 >
                                   -
                                 </button>
-                                <span className="text-base font-medium">
+                                <span className="text-base font-medium text-gray-900">
                                   {equipment.find(item => item.type === equip)?.days || 1} {
                                     (equipment.find(item => item.type === equip)?.days || 1) === 1 ? 'day' : 'days'
                                   }
@@ -695,12 +701,12 @@ const BudgetCalculator = () => {
               </span>
             </button>
             
-            <button 
+                          <button 
               onClick={() => setStep(2)}
               className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
             >
               <span className={`font-medium text-sm transition-colors duration-300 ${step === 2 ? 'text-white' : 'text-gray-700'}`}>
-                Inputs
+                Budget
               </span>
             </button>
           </div>
