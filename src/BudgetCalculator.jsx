@@ -284,6 +284,12 @@ const BudgetCalculator = () => {
       setBudget(minimumBudget);
     }
   }, [budget, minimumBudget]);
+  
+  useEffect(() => {
+    if (budget < minimumBudget) {
+      setBudget(minimumBudget);
+    }
+  }, [budget, minimumBudget]);
 
   // Success message
   if (success) {
@@ -309,359 +315,420 @@ const BudgetCalculator = () => {
 
   return (
     <div className="bg-[#ffffff] min-h-screen">
-      {/* STEP 1 – INTRO SLIDE */}
-      {step === 1 && (
-        <div className="py-20 mb-20 border-b border-gray-200">
-          {/* INTRO SECTION */}
-          <div className="max-w-6xl mx-auto px-6 flex flex-col lg:flex-row items-center gap-12">
-            {/* LEFT TEXT */}
-            <div className="lg:w-1/2 text-left max-w-[650px]">
-              <p className="text-sm font-medium text-gray-500 uppercase mb-3">
-                A free budgeting service for service productions
-              </p>
-              <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-6">
-                How to get your budget
-              </h2>
-              <p className="text-gray-700 text-lg leading-relaxed mb-8">
-                Enter your production details, and Line.Calc will instantly generate a reliable
-                budget estimate based on industry-standard costs and our expertise. The draft will be
-                sent directly to your email — and ours — for further review. This tool gives you a clear
-                starting point to understand the possibilities of filming in Norway with Line.Production.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-gray-800 text-base">
-                <div>
-                  <div className="font-semibold mb-1">📩 Get the budget to your inbox within seconds.</div>
-                </div>
-                <div>
-                  <div className="font-semibold mb-1">🌍 Give more time to the why and where.</div>
-                </div>
-              </div>
-            </div>
-
-            {/* RIGHT IMAGE */}
-            <div className="lg:w-[45%] rounded-2xl overflow-hidden shadow-lg">
-              <img
-                src={TheluxhouseImg}
-                alt="Preview of budget estimate on phone"
-                className="w-full object-cover"
-              />
-            </div>
-          </div>
-
-          {/* Step 1 button */}
-          <div className="text-center mt-12">
-            <button
-              onClick={() => setStep(2)}
-              className="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors"
-            >
-              Start your estimate
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* STEP 2 - CALCULATOR */}
-      {step === 2 && (
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Left side - Basic info */}
-            <div className="w-full lg:w-5/12 space-y-4">
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className={`w-full p-4 bg-gray-50 border-0 rounded-xl text-gray-900 placeholder-gray-400 ${errors.title ? 'ring-2 ring-red-500' : ''}`}
-                placeholder="Give your project a title"
-              />
-              {errors.title && <p className="mt-1 text-sm text-red-500">{errors.title}</p>}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input
-                  type="text"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  className="w-full p-4 bg-gray-50 border-0 rounded-xl text-gray-900 placeholder-gray-400"
-                  placeholder="Company name (optional)"
-                />
-
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={`w-full p-4 bg-gray-50 border-0 rounded-xl text-gray-900 placeholder-gray-400 ${errors.email ? 'ring-2 ring-red-500' : ''}`}
-                  placeholder="Your email (required)"
-                />
-              </div>
-              {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
-
-              <div className="space-y-4">
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formatNumber(budget)}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '');
-                      setBudget(value === '' ? currencySettings[currency].min : Number(value));
-                    }}
-                    className={`w-full p-4 bg-gray-50 border-0 rounded-l-md text-gray-900 text-xl font-medium ${errors.budget ? 'ring-2 ring-red-500' : ''}`}
-                    placeholder="Your budget"
-                  />
-                  <div className="absolute inset-y-0 right-0 flex">
-                    <select
-                      value={currency}
-                      onChange={handleCurrencyChange}
-                      className="h-full bg-gray-50 border-0 border-l border-gray-200 rounded-r-md appearance-none px-3 text-gray-500"
-                    >
-                      <option value="NOK">NOK</option>
-                      <option value="USD">USD</option>
-                      <option value="GBP">GBP</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="px-2">
-                  <input
-                    type="range"
-                    value={budget}
-                    onChange={(e) => setBudget(Number(e.target.value))}
-                    min={minimumBudget}
-                    max={currencySettings[currency].max}
-                    step={currencySettings[currency].step}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>{formatNumber(minimumBudget)}</span>
-                    <span>{formatNumber(Math.round(currencySettings[currency].max * 0.4))}</span>
-                    <span>{formatNumber(currencySettings[currency].max)}</span>
-                  </div>
-                </div>
-              </div>
-              {errors.budget && <p className="mt-1 text-sm text-red-500">{errors.budget}</p>}
-
-              {/* Keywords section */}
-              <div className="mt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Production Type */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Production Type</label>
-                    <div className="flex flex-wrap gap-2">
-                      {productionTypes.map(type => (
-                        <button
-                          key={type.id}
-                          type="button"
-                          className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(type.id)
-                            ? 'bg-black text-white'
-                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                            }`}
-                          onClick={() => toggleKeyword(type.id)}
-                        >
-                          {type.label}
-                        </button>
-                      ))}
+      {/* Add CSS for slide animations */}
+      <style jsx>{`
+        @keyframes slideLeft {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(-10%); opacity: 0; }
+        }
+        
+        @keyframes slideRight {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(10%); opacity: 0; }
+        }
+        
+        @keyframes slideInFromRight {
+          from { transform: translateX(10%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideInFromLeft {
+          from { transform: translateX(-10%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .slide-left {
+          animation: slideLeft 0.5s ease-in-out;
+        }
+        
+        .slide-right {
+          animation: slideRight 0.5s ease-in-out;
+        }
+        
+        .slide-in-from-right {
+          animation: slideInFromRight 0.5s ease-in-out;
+        }
+        
+        .slide-in-from-left {
+          animation: slideInFromLeft 0.5s ease-in-out;
+        }
+      `}</style>
+      
+      {/* Common container for consistent height */}
+      <div className="py-12 min-h-[720px] flex items-center step-container">
+        <div className="max-w-6xl w-full mx-auto px-6">
+          {/* STEP 1 – INTRO SLIDE */}
+          {step === 1 && (
+            <div className="flex flex-col">
+              {/* INTRO SECTION */}
+              <div className="flex flex-col lg:flex-row items-center gap-12">
+                {/* LEFT TEXT */}
+                <div className="lg:w-1/2 text-left max-w-[650px]">
+                  <p className="text-sm font-medium text-gray-500 uppercase mb-3">
+                    A free budgeting service for service productions
+                  </p>
+                  <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-6">
+                    How to get your budget
+                  </h2>
+                  <p className="text-gray-700 text-lg leading-relaxed mb-8">
+                    Enter your production details, and Line.Calc will instantly generate a reliable
+                    budget estimate based on industry-standard costs and our expertise. The draft will be
+                    sent directly to your email — and ours — for further review. This tool gives you a clear
+                    starting point to understand the possibilities of filming in Norway with Line.Production.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-gray-800 text-base mb-8">
+                    <div>
+                      <div className="font-semibold mb-1">📩 Get the budget to your inbox within seconds.</div>
+                    </div>
+                    <div>
+                      <div className="font-semibold mb-1">🌍 Give more time to the why and where.</div>
                     </div>
                   </div>
-
-                  {/* Service Requirements */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Service Requirements</label>
-                    <div className="flex flex-wrap gap-2">
-                      {serviceRequirements.map(req => (
-                        <button
-                          key={req.id}
-                          type="button"
-                          className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(req.id)
-                            ? 'bg-black text-white'
-                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                            }`}
-                          onClick={() => toggleKeyword(req.id)}
-                        >
-                          {req.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right side - Production details */}
-            <div className="w-full lg:w-7/12 bg-white rounded-2xl shadow-md p-8 border border-gray-100 space-y-6">
-              <form onSubmit={handleSubmit} className="space-y-8">
-                {/* Shooting days and locations row */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-sm text-gray-500 mb-1">Shooting in Oslo</label>
-                    <div className="bg-gray-50 p-4 rounded-xl h-16 flex items-center justify-center">
-                      <input
-                        type="number"
-                        value={daysInOslo}
-                        onChange={(e) => setDaysInOslo(Math.max(0, Number(e.target.value)))}
-                        min="0"
-                        className={`w-20 text-center bg-transparent border-0 text-gray-900 text-xl font-medium ${errors.days ? 'ring-2 ring-red-500' : ''}`}
-                        placeholder="0"
-                      />
-                      <span className="text-sm text-gray-500 ml-1">day{daysInOslo !== 1 ? 's' : ''}</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-sm text-gray-500 mb-1">Shooting out of Oslo</label>
-                    <div className="bg-gray-50 p-4 rounded-xl h-16 flex items-center justify-center">
-                      <input
-                        type="number"
-                        value={daysOutOfOslo}
-                        onChange={(e) => setDaysOutOfOslo(Math.max(0, Number(e.target.value)))}
-                        min="0"
-                        className="w-20 text-center bg-transparent border-0 text-gray-900 text-xl font-medium"
-                        placeholder="0"
-                      />
-                      <span className="text-sm text-gray-500 ml-1">day{daysOutOfOslo !== 1 ? 's' : ''}</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-sm text-gray-500 mb-1">Number of locations</label>
-                    <div className="bg-gray-50 p-4 rounded-xl h-16 flex items-center justify-center">
-                      <input
-                        type="number"
-                        value={locations}
-                        onChange={(e) => setLocations(Math.max(1, Number(e.target.value)))}
-                        min={daysInOslo > 0 && daysOutOfOslo > 0 ? 2 : 1}
-                        className={`w-20 text-center bg-transparent border-0 text-gray-900 text-xl font-medium ${errors.locations ? 'ring-2 ring-red-500' : ''}`}
-                        placeholder="1"
-                      />
-                      <span className="text-sm text-gray-500 ml-1">location{locations !== 1 ? 's' : ''}</span>
-                    </div>
-                  </div>
-                </div>
-                {errors.days && <p className="mt-1 text-sm text-red-500">{errors.days}</p>}
-                {errors.locations && <p className="mt-1 text-sm text-red-500">{errors.locations}</p>}
-
-                {/* Special equipment section */}
-                <div className="space-y-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Special Equipment</label>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    {equipmentOptions.map(equip => (
-                      <div key={equip} className="border border-gray-200 rounded-xl overflow-hidden">
-                        <div
-                          className={`p-3 cursor-pointer transition-all ${equipment.some(item => item.type === equip)
-                            ? 'bg-black text-white'
-                            : 'bg-gray-50 hover:bg-gray-100'
-                            }`}
-                          onClick={() => toggleEquipment(equip)}
-                        >
-                          <div className="font-medium text-center">{equip}</div>
-                        </div>
-
-                        {equipment.some(item => item.type === equip) && (
-                          <div className="bg-white p-2 border-t border-gray-200">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-full text-gray-700 hover:bg-gray-200"
-                                onClick={() => changeEquipmentDays(equip, -1)}
-                              >
-                                -
-                              </button>
-                              <span className="text-base font-medium">
-                                {equipment.find(item => item.type === equip)?.days || 1} {
-                                  (equipment.find(item => item.type === equip)?.days || 1) === 1 ? 'day' : 'days'
-                                }
-                              </span>
-                              <button
-                                type="button"
-                                className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-full text-gray-700 hover:bg-gray-200"
-                                onClick={() => changeEquipmentDays(equip, 1)}
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Condensed Summary */}
-                <div className="bg-gray-50 px-4 py-3 rounded-md mb-4">
-                  <h3 className="text-base font-semibold text-center text-gray-800 mb-2">Project Summary</h3>
-
-                  <div className="grid grid-cols-2 gap-y-1 text-sm">
-                    <div className="text-gray-500">Total Shooting Days</div>
-                    <div className="text-gray-900">{totalDays} day{totalDays !== 1 ? 's' : ''}</div>
-
-                    <div className="text-gray-500">Budget</div>
-                    <div className="text-gray-900">
-                      {formatNumber(budget)} {currencySettings[currency].symbol}
-                    </div>
-
-                    <div className="text-gray-500">Production Type</div>
-                    <div className="text-gray-900">
-                      {keywords.filter((id) => productionTypes.some((pt) => pt.id === id)).length > 0
-                        ? keywords
-                            .filter((id) => productionTypes.some((pt) => pt.id === id))
-                            .map((k) => productionTypes.find((pt) => pt.id === k)?.label)
-                            .join(', ')
-                        : '—'}
-                    </div>
-
-                    <div className="text-gray-500">Service Requirements</div>
-                    <div className="text-gray-900">
-                      {keywords.filter((id) => serviceRequirements.some((sr) => sr.id === id)).length > 0
-                        ? keywords
-                            .filter((id) => serviceRequirements.some((sr) => sr.id === id))
-                            .map((k) => serviceRequirements.find((sr) => sr.id === k)?.label)
-                            .join(', ')
-                        : '—'}
-                    </div>
-
-                    <div className="text-gray-500">Special Equipment</div>
-                    <div className="text-gray-900">
-                      {equipment.length > 0
-                        ? equipment
-                            .map((item) => `${item.type} (${item.days}d)`)
-                            .join(', ')
-                        : '—'}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
+                  
+                  {/* Step 1 button moved inside the text column */}
                   <button
-                    type="submit"
-                    className="w-full flex justify-center items-center gap-2 bg-black hover:bg-gray-800 text-white py-4 px-6 rounded-xl transition-colors disabled:opacity-70"
-                    disabled={isSubmitting}
+                    onClick={() => setStep(2)}
+                    className="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors"
                   >
-                    {isSubmitting ? (
-                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291z"></path>
-                      </svg>
-                    ) : (
-                      <Mail className="h-5 w-5" />
-                    )}
-                    Get your estimate
+                    Start your estimate
                   </button>
                 </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* STEP INDICATOR DOTS */}
+                {/* RIGHT IMAGE */}
+                <div className="lg:w-[45%] rounded-2xl overflow-hidden shadow-lg">
+                  <img
+                    src={TheluxhouseImg}
+                    alt="Preview of budget estimate on phone"
+                    className="w-full object-cover"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2 - CALCULATOR */}
+          {step === 2 && (
+            <div className="flex flex-col lg:flex-row gap-8">
+              {/* Left side - Basic info */}
+              <div className="w-full lg:w-5/12 space-y-4">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className={`w-full p-4 bg-gray-50 border-0 rounded-xl text-gray-900 placeholder-gray-400 ${errors.title ? 'ring-2 ring-red-500' : ''}`}
+                  placeholder="Give your project a title"
+                />
+                {errors.title && <p className="mt-1 text-sm text-red-500">{errors.title}</p>}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    type="text"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    className="w-full p-4 bg-gray-50 border-0 rounded-xl text-gray-900 placeholder-gray-400"
+                    placeholder="Company name (optional)"
+                  />
+
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={`w-full p-4 bg-gray-50 border-0 rounded-xl text-gray-900 placeholder-gray-400 ${errors.email ? 'ring-2 ring-red-500' : ''}`}
+                    placeholder="Your email (required)"
+                  />
+                </div>
+                {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
+
+                <div className="space-y-4">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formatNumber(budget)}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        setBudget(value === '' ? currencySettings[currency].min : Number(value));
+                      }}
+                      className={`w-full p-4 bg-gray-50 border-0 rounded-l-md text-gray-900 text-xl font-medium ${errors.budget ? 'ring-2 ring-red-500' : ''}`}
+                      placeholder="Your budget"
+                    />
+                    <div className="absolute inset-y-0 right-0 flex">
+                      <select
+                        value={currency}
+                        onChange={handleCurrencyChange}
+                        className="h-full bg-gray-50 border-0 border-l border-gray-200 rounded-r-md appearance-none px-3 text-gray-500"
+                      >
+                        <option value="NOK">NOK</option>
+                        <option value="USD">USD</option>
+                        <option value="GBP">GBP</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="px-2">
+                    <input
+                      type="range"
+                      value={budget}
+                      onChange={(e) => setBudget(Number(e.target.value))}
+                      min={minimumBudget}
+                      max={currencySettings[currency].max}
+                      step={currencySettings[currency].step}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>{formatNumber(minimumBudget)}</span>
+                      <span>{formatNumber(Math.round(currencySettings[currency].max * 0.4))}</span>
+                      <span>{formatNumber(currencySettings[currency].max)}</span>
+                    </div>
+                  </div>
+                </div>
+                {errors.budget && <p className="mt-1 text-sm text-red-500">{errors.budget}</p>}
+
+                {/* Keywords section */}
+                <div className="mt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Production Type */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Production Type</label>
+                      <div className="flex flex-wrap gap-2">
+                        {productionTypes.map(type => (
+                          <button
+                            key={type.id}
+                            type="button"
+                            className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(type.id)
+                              ? 'bg-black text-white'
+                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                              }`}
+                            onClick={() => toggleKeyword(type.id)}
+                          >
+                            {type.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Service Requirements */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Service Requirements</label>
+                      <div className="flex flex-wrap gap-2">
+                        {serviceRequirements.map(req => (
+                          <button
+                            key={req.id}
+                            type="button"
+                            className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(req.id)
+                              ? 'bg-black text-white'
+                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                              }`}
+                            onClick={() => toggleKeyword(req.id)}
+                          >
+                            {req.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right side - Production details */}
+              <div className="w-full lg:w-7/12 bg-white rounded-2xl shadow-md p-8 border border-gray-100 space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-8">
+                  {/* Shooting days and locations row */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <label className="block text-sm text-gray-500 mb-1">Shooting in Oslo</label>
+                      <div className="bg-gray-50 p-4 rounded-xl h-16 flex items-center justify-center">
+                        <input
+                          type="number"
+                          value={daysInOslo}
+                          onChange={(e) => setDaysInOslo(Math.max(0, Number(e.target.value)))}
+                          min="0"
+                          className={`w-20 text-center bg-transparent border-0 text-gray-900 text-xl font-medium ${errors.days ? 'ring-2 ring-red-500' : ''}`}
+                          placeholder="0"
+                        />
+                        <span className="text-sm text-gray-500 ml-1">day{daysInOslo !== 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-sm text-gray-500 mb-1">Shooting out of Oslo</label>
+                      <div className="bg-gray-50 p-4 rounded-xl h-16 flex items-center justify-center">
+                        <input
+                          type="number"
+                          value={daysOutOfOslo}
+                          onChange={(e) => setDaysOutOfOslo(Math.max(0, Number(e.target.value)))}
+                          min="0"
+                          className="w-20 text-center bg-transparent border-0 text-gray-900 text-xl font-medium"
+                          placeholder="0"
+                        />
+                        <span className="text-sm text-gray-500 ml-1">day{daysOutOfOslo !== 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-sm text-gray-500 mb-1">Number of locations</label>
+                      <div className="bg-gray-50 p-4 rounded-xl h-16 flex items-center justify-center">
+                        <input
+                          type="number"
+                          value={locations}
+                          onChange={(e) => setLocations(Math.max(1, Number(e.target.value)))}
+                          min={daysInOslo > 0 && daysOutOfOslo > 0 ? 2 : 1}
+                          className={`w-20 text-center bg-transparent border-0 text-gray-900 text-xl font-medium ${errors.locations ? 'ring-2 ring-red-500' : ''}`}
+                          placeholder="1"
+                        />
+                        <span className="text-sm text-gray-500 ml-1">location{locations !== 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+                  </div>
+                  {errors.days && <p className="mt-1 text-sm text-red-500">{errors.days}</p>}
+                  {errors.locations && <p className="mt-1 text-sm text-red-500">{errors.locations}</p>}
+
+                  {/* Special equipment section */}
+                  <div className="space-y-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Special Equipment</label>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      {equipmentOptions.map(equip => (
+                        <div key={equip} className="border border-gray-200 rounded-xl overflow-hidden">
+                          <div
+                            className={`p-3 cursor-pointer transition-all ${equipment.some(item => item.type === equip)
+                              ? 'bg-black text-white'
+                              : 'bg-gray-50 hover:bg-gray-100'
+                              }`}
+                            onClick={() => toggleEquipment(equip)}
+                          >
+                            <div className="font-medium text-center">{equip}</div>
+                          </div>
+
+                          {equipment.some(item => item.type === equip) && (
+                            <div className="bg-white p-2 border-t border-gray-200">
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-full text-gray-700 hover:bg-gray-200"
+                                  onClick={() => changeEquipmentDays(equip, -1)}
+                                >
+                                  -
+                                </button>
+                                <span className="text-base font-medium">
+                                  {equipment.find(item => item.type === equip)?.days || 1} {
+                                    (equipment.find(item => item.type === equip)?.days || 1) === 1 ? 'day' : 'days'
+                                  }
+                                </span>
+                                <button
+                                  type="button"
+                                  className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-full text-gray-700 hover:bg-gray-200"
+                                  onClick={() => changeEquipmentDays(equip, 1)}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Condensed Summary */}
+                  <div className="bg-gray-50 px-4 py-3 rounded-md mb-4">
+                    <h3 className="text-base font-semibold text-center text-gray-800 mb-2">Project Summary</h3>
+
+                    <div className="grid grid-cols-2 gap-y-1 text-sm">
+                      <div className="text-gray-500">Total Shooting Days</div>
+                      <div className="text-gray-900">{totalDays} day{totalDays !== 1 ? 's' : ''}</div>
+
+                      <div className="text-gray-500">Budget</div>
+                      <div className="text-gray-900">
+                        {formatNumber(budget)} {currencySettings[currency].symbol}
+                      </div>
+
+                      <div className="text-gray-500">Production Type</div>
+                      <div className="text-gray-900">
+                        {keywords.filter((id) => productionTypes.some((pt) => pt.id === id)).length > 0
+                          ? keywords
+                              .filter((id) => productionTypes.some((pt) => pt.id === id))
+                              .map((k) => productionTypes.find((pt) => pt.id === k)?.label)
+                              .join(', ')
+                          : '—'}
+                      </div>
+
+                      <div className="text-gray-500">Service Requirements</div>
+                      <div className="text-gray-900">
+                        {keywords.filter((id) => serviceRequirements.some((sr) => sr.id === id)).length > 0
+                          ? keywords
+                              .filter((id) => serviceRequirements.some((sr) => sr.id === id))
+                              .map((k) => serviceRequirements.find((sr) => sr.id === k)?.label)
+                              .join(', ')
+                          : '—'}
+                      </div>
+
+                      <div className="text-gray-500">Special Equipment</div>
+                      <div className="text-gray-900">
+                        {equipment.length > 0
+                          ? equipment
+                              .map((item) => `${item.type} (${item.days}d)`)
+                              .join(', ')
+                          : '—'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <button
+                      type="submit"
+                      className="w-full flex justify-center items-center gap-2 bg-black hover:bg-gray-800 text-white py-4 px-6 rounded-xl transition-colors disabled:opacity-70"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291z"></path>
+                        </svg>
+                      ) : (
+                        <Mail className="h-5 w-5" />
+                      )}
+                      Get your estimate
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* SIMPLE SEGMENTED CONTROL EXACTLY MATCHING IMAGE */}
       {!success && (
-        <div className="py-6 flex justify-center space-x-4">
-          <button
-            onClick={() => setStep(1)}
-            className={`w-4 h-4 rounded-full transition-all ${step === 1 ? 'bg-black' : 'bg-gray-300'}`}
-          />
-          <button
-            onClick={() => setStep(2)}
-            className={`w-4 h-4 rounded-full transition-all ${step === 2 ? 'bg-black' : 'bg-gray-300'}`}
-          />
+        <div className="py-8 flex flex-col items-center justify-center">
+          <div className="flex w-64 h-12 bg-gray-100 rounded-full shadow-md relative">
+            {/* Background circle that shows on active side */}
+            <div 
+              className="absolute top-1 bottom-1 bg-black rounded-full transition-all duration-300 ease-in-out"
+              style={{ 
+                width: 'calc(50% - 6px)',
+                left: step === 2 ? 'calc(50% + 3px)' : '3px',
+              }}
+            ></div>
+            
+            {/* Two equal width buttons */}
+            <button 
+              onClick={() => setStep(1)}
+              className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
+            >
+              <span className={`font-medium text-sm transition-colors duration-300 ${step === 1 ? 'text-white' : 'text-gray-700'}`}>
+                Info
+              </span>
+            </button>
+            
+            <button 
+              onClick={() => setStep(2)}
+              className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
+            >
+              <span className={`font-medium text-sm transition-colors duration-300 ${step === 2 ? 'text-white' : 'text-gray-700'}`}>
+                Input
+              </span>
+            </button>
+          </div>
         </div>
       )}
     </div>
