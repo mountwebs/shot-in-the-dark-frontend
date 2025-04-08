@@ -18,6 +18,10 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+body {
+  background-color: #ffffff;
+}
+
 /* Global anchor styles */
 a {
   font-weight: 500;

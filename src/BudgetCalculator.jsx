@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Check } from 'lucide-react';
+import TheluxhouseImg from './assets/Theluxhouse.png';
 
 const BudgetCalculator = () => {
   // State
+  const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
@@ -307,10 +309,65 @@ if (keywords.includes('fixer') && totalDays > 1) {
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto py-12 px-6">
-      <div className="flex flex-col lg:flex-row gap-8">
+    <div className="bg-[#ffffff] min-h-screen">
+      
+      {/* STEP 1 – INTRO SLIDE */}
+      {step === 1 && (
+        <div className="py-20 mb-20 border-b border-gray-200">
+  {/* INTRO SECTION */}
+  <div className="py-20 mb-20 border-b border-gray-200">
+    <div className="max-w-6xl mx-auto px-6 flex flex-col lg:flex-row items-center gap-12">
+      {/* LEFT TEXT */}
+      <div className="lg:w-1/2 text-left max-w-[650px]">
+        <p className="text-sm font-medium text-gray-500 uppercase mb-3">
+          A free budgeting service for service productions
+        </p>
+        <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-6">
+          How to get your budget
+        </h2>
+        <p className="text-gray-700 text-lg leading-relaxed mb-8">
+          Enter your production details, and Line.Calc will instantly generate a reliable
+          budget estimate based on industry-standard costs and our expertise. The draft will be
+          sent directly to your email — and ours — for further review. This tool gives you a clear
+          starting point to understand the possibilities of filming in Norway with Line.Production.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-gray-800 text-base">
+          <div>
+            <div className="font-semibold mb-1">📩 Get the budget to your inbox within seconds.</div>
+          </div>
+          <div>
+            <div className="font-semibold mb-1">🌍 Give more time to the why and where.</div>
+          </div>
+        </div>
+      </div>
+      
+
+      {/* RIGHT IMAGE */}
+      <div className="lg:w-[45%] rounded-2xl overflow-hidden shadow-lg">
+        <img
+          src={TheluxhouseImg}
+          alt="Preview of budget estimate on phone"
+          className="w-full object-cover"
+        />
+      </div>
+    </div>
+  </div>
+  
+          {/* Step 1 button */}
+          <div className="text-center mt-12">
+          <button
+            onClick={() => setStep(2)}
+            className="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors"
+          >
+            Start your estimate
+          </button>
+        </div>
+      </div>
+    )}
+
         {/* Left side - Basic info */}
-        <div className="w-full lg:w-5/12">
+        {step === 2 && (
+  <div className="max-w-6xl mx-auto px-6 flex flex-col lg:flex-row gap-8">
           <div className="mb-8">
             <div className="space-y-4">
               <input
@@ -432,10 +489,10 @@ if (keywords.includes('fixer') && totalDays > 1) {
             </div>
           </div>
         </div>
+        
 
         {/* Right side - Production details */}
         <div className="w-full lg:w-7/12 bg-white rounded-2xl shadow-md p-8 border border-gray-100 space-y-6">
-
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Shooting days and locations row */}
             <div className="grid grid-cols-3 gap-4">
@@ -578,6 +635,7 @@ if (keywords.includes('fixer') && totalDays > 1) {
   </div>
 </div>
 
+
             <div className="space-y-4">
               <button
                 type="submit"
@@ -593,12 +651,27 @@ if (keywords.includes('fixer') && totalDays > 1) {
                   <Mail className="h-5 w-5" />
                 )}
                 Get your estimate
-              </button>
-            </div>
-          </form>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div> {/* ✅ Close step === 2 wrapper */}
+      )}
+
+      {/* STEP INDICATOR DOTS */}
+      {!success && (
+        <div className="py-6 flex justify-center space-x-4">
+          <button
+            onClick={() => setStep(1)}
+            className={`w-4 h-4 rounded-full transition-all ${step === 1 ? 'bg-black' : 'bg-gray-300'}`}
+          />
+          <button
+            onClick={() => setStep(2)}
+            className={`w-4 h-4 rounded-full transition-all ${step === 2 ? 'bg-black' : 'bg-gray-300'}`}
+          />
         </div>
-      </div>
-    </div>
+      )}
+    </div> {/* ✅ Close .bg-[#ffffff] wrapper */}
   );
 };
 
