@@ -355,7 +355,7 @@ const BudgetCalculator = () => {
       `}</style>
       
       {/* Common container for consistent height */}
-      <div className="py-12 min-h-[720px] flex items-center step-container">
+      <div className="py-10 min-h-[680px] flex items-center step-container">
         <div className="max-w-6xl w-full mx-auto px-6">
           {/* STEP 1 – INTRO SLIDE */}
           {step === 1 && (
@@ -384,14 +384,6 @@ const BudgetCalculator = () => {
                       <div className="font-semibold mb-1">🌍 Give more time to the why and where.</div>
                     </div>
                   </div>
-                  
-                  {/* Step 1 button moved inside the text column */}
-                  <button
-                    onClick={() => setStep(2)}
-                    className="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors"
-                  >
-                    Start your estimate
-                  </button>
                 </div>
 
                 {/* RIGHT IMAGE */}
@@ -448,14 +440,14 @@ const BudgetCalculator = () => {
                         const value = e.target.value.replace(/\D/g, '');
                         setBudget(value === '' ? currencySettings[currency].min : Number(value));
                       }}
-                      className={`w-full p-4 bg-gray-50 border-0 rounded-l-md text-gray-900 text-xl font-medium ${errors.budget ? 'ring-2 ring-red-500' : ''}`}
+                      className={`w-full p-4 bg-gray-50 border-0 rounded-xl text-gray-900 text-xl font-medium ${errors.budget ? 'ring-2 ring-red-500' : ''}`}
                       placeholder="Your budget"
                     />
                     <div className="absolute inset-y-0 right-0 flex">
                       <select
                         value={currency}
                         onChange={handleCurrencyChange}
-                        className="h-full bg-gray-50 border-0 border-l border-gray-200 rounded-r-md appearance-none px-3 text-gray-500"
+                        className="h-full bg-gray-50 border-0 border-l border-gray-200 rounded-r-xl appearance-none px-3 text-gray-500"
                       >
                         <option value="NOK">NOK</option>
                         <option value="USD">USD</option>
@@ -464,22 +456,7 @@ const BudgetCalculator = () => {
                     </div>
                   </div>
 
-                  <div className="px-2">
-                    <input
-                      type="range"
-                      value={budget}
-                      onChange={(e) => setBudget(Number(e.target.value))}
-                      min={minimumBudget}
-                      max={currencySettings[currency].max}
-                      step={currencySettings[currency].step}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    />
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>{formatNumber(minimumBudget)}</span>
-                      <span>{formatNumber(Math.round(currencySettings[currency].max * 0.4))}</span>
-                      <span>{formatNumber(currencySettings[currency].max)}</span>
-                    </div>
-                  </div>
+                  {/* Removed slider from budget input */}
                 </div>
                 {errors.budget && <p className="mt-1 text-sm text-red-500">{errors.budget}</p>}
 
@@ -725,7 +702,7 @@ const BudgetCalculator = () => {
               className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
             >
               <span className={`font-medium text-sm transition-colors duration-300 ${step === 2 ? 'text-white' : 'text-gray-700'}`}>
-                Input
+                Budget
               </span>
             </button>
           </div>
