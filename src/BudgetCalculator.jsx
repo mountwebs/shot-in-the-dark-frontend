@@ -121,7 +121,6 @@ const BudgetCalculator = () => {
       }
     }
 
-
     // Technical equipment adjustment - reduced for stills, documentary, and music video
     if (keywords.includes('tech-equipment')) {
       if (keywords.includes('stills') || keywords.includes('documentary') || keywords.includes('music')) {
@@ -139,10 +138,10 @@ const BudgetCalculator = () => {
     minBudget = minBudget * locationFactor;
 
     // Add fixer cost only if fixer is selected and totalDays > 1
-if (keywords.includes('fixer') && totalDays > 1) {
-  const fixerCostPerDay = daysOutOfOslo > 0 ? 70000 : 40000;
-  minBudget += fixerCostPerDay * (totalDays - 1); // first day included in baseline
-}
+    if (keywords.includes('fixer') && totalDays > 1) {
+      const fixerCostPerDay = daysOutOfOslo > 0 ? 70000 : 40000;
+      minBudget += fixerCostPerDay * (totalDays - 1); // first day included in baseline
+    }
 
     // Add special equipment
     equipment.forEach(item => {
@@ -310,66 +309,63 @@ if (keywords.includes('fixer') && totalDays > 1) {
 
   return (
     <div className="bg-[#ffffff] min-h-screen">
-      
       {/* STEP 1 – INTRO SLIDE */}
       {step === 1 && (
         <div className="py-20 mb-20 border-b border-gray-200">
-  {/* INTRO SECTION */}
-  <div className="py-20 mb-20 border-b border-gray-200">
-    <div className="max-w-6xl mx-auto px-6 flex flex-col lg:flex-row items-center gap-12">
-      {/* LEFT TEXT */}
-      <div className="lg:w-1/2 text-left max-w-[650px]">
-        <p className="text-sm font-medium text-gray-500 uppercase mb-3">
-          A free budgeting service for service productions
-        </p>
-        <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-6">
-          How to get your budget
-        </h2>
-        <p className="text-gray-700 text-lg leading-relaxed mb-8">
-          Enter your production details, and Line.Calc will instantly generate a reliable
-          budget estimate based on industry-standard costs and our expertise. The draft will be
-          sent directly to your email — and ours — for further review. This tool gives you a clear
-          starting point to understand the possibilities of filming in Norway with Line.Production.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-gray-800 text-base">
-          <div>
-            <div className="font-semibold mb-1">📩 Get the budget to your inbox within seconds.</div>
-          </div>
-          <div>
-            <div className="font-semibold mb-1">🌍 Give more time to the why and where.</div>
-          </div>
-        </div>
-      </div>
-      
+          {/* INTRO SECTION */}
+          <div className="max-w-6xl mx-auto px-6 flex flex-col lg:flex-row items-center gap-12">
+            {/* LEFT TEXT */}
+            <div className="lg:w-1/2 text-left max-w-[650px]">
+              <p className="text-sm font-medium text-gray-500 uppercase mb-3">
+                A free budgeting service for service productions
+              </p>
+              <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-6">
+                How to get your budget
+              </h2>
+              <p className="text-gray-700 text-lg leading-relaxed mb-8">
+                Enter your production details, and Line.Calc will instantly generate a reliable
+                budget estimate based on industry-standard costs and our expertise. The draft will be
+                sent directly to your email — and ours — for further review. This tool gives you a clear
+                starting point to understand the possibilities of filming in Norway with Line.Production.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-gray-800 text-base">
+                <div>
+                  <div className="font-semibold mb-1">📩 Get the budget to your inbox within seconds.</div>
+                </div>
+                <div>
+                  <div className="font-semibold mb-1">🌍 Give more time to the why and where.</div>
+                </div>
+              </div>
+            </div>
 
-      {/* RIGHT IMAGE */}
-      <div className="lg:w-[45%] rounded-2xl overflow-hidden shadow-lg">
-        <img
-          src={TheluxhouseImg}
-          alt="Preview of budget estimate on phone"
-          className="w-full object-cover"
-        />
-      </div>
-    </div>
-  </div>
-  
+            {/* RIGHT IMAGE */}
+            <div className="lg:w-[45%] rounded-2xl overflow-hidden shadow-lg">
+              <img
+                src={TheluxhouseImg}
+                alt="Preview of budget estimate on phone"
+                className="w-full object-cover"
+              />
+            </div>
+          </div>
+
           {/* Step 1 button */}
           <div className="text-center mt-12">
-          <button
-            onClick={() => setStep(2)}
-            className="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors"
-          >
-            Start your estimate
-          </button>
+            <button
+              onClick={() => setStep(2)}
+              className="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors"
+            >
+              Start your estimate
+            </button>
+          </div>
         </div>
-      </div>
-    )}
+      )}
 
-        {/* Left side - Basic info */}
-        {step === 2 && (
-  <div className="max-w-6xl mx-auto px-6 flex flex-col lg:flex-row gap-8">
-          <div className="mb-8">
-            <div className="space-y-4">
+      {/* STEP 2 - CALCULATOR */}
+      {step === 2 && (
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Left side - Basic info */}
+            <div className="w-full lg:w-5/12 space-y-4">
               <input
                 type="text"
                 value={title}
@@ -443,8 +439,8 @@ if (keywords.includes('fixer') && totalDays > 1) {
               {errors.budget && <p className="mt-1 text-sm text-red-500">{errors.budget}</p>}
 
               {/* Keywords section */}
-              <div className="mt-6 mb-8">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="mt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Production Type */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Production Type</label>
@@ -487,175 +483,172 @@ if (keywords.includes('fixer') && totalDays > 1) {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        
 
-        {/* Right side - Production details */}
-        <div className="w-full lg:w-7/12 bg-white rounded-2xl shadow-md p-8 border border-gray-100 space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Shooting days and locations row */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-1">
-                <label className="block text-sm text-gray-500 mb-1">Shooting in Oslo</label>
-                <div className="bg-gray-50 p-4 rounded-xl h-16 flex items-center justify-center">
-                  <input
-                    type="number"
-                    value={daysInOslo}
-                    onChange={(e) => setDaysInOslo(Math.max(0, Number(e.target.value)))}
-                    min="0"
-                    className={`w-20 text-center bg-transparent border-0 text-gray-900 text-xl font-medium ${errors.days ? 'ring-2 ring-red-500' : ''}`}
-                    placeholder="0"
-                  />
-                  <span className="text-sm text-gray-500 ml-1">day{daysInOslo !== 1 ? 's' : ''}</span>
+            {/* Right side - Production details */}
+            <div className="w-full lg:w-7/12 bg-white rounded-2xl shadow-md p-8 border border-gray-100 space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-8">
+                {/* Shooting days and locations row */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <label className="block text-sm text-gray-500 mb-1">Shooting in Oslo</label>
+                    <div className="bg-gray-50 p-4 rounded-xl h-16 flex items-center justify-center">
+                      <input
+                        type="number"
+                        value={daysInOslo}
+                        onChange={(e) => setDaysInOslo(Math.max(0, Number(e.target.value)))}
+                        min="0"
+                        className={`w-20 text-center bg-transparent border-0 text-gray-900 text-xl font-medium ${errors.days ? 'ring-2 ring-red-500' : ''}`}
+                        placeholder="0"
+                      />
+                      <span className="text-sm text-gray-500 ml-1">day{daysInOslo !== 1 ? 's' : ''}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-sm text-gray-500 mb-1">Shooting out of Oslo</label>
+                    <div className="bg-gray-50 p-4 rounded-xl h-16 flex items-center justify-center">
+                      <input
+                        type="number"
+                        value={daysOutOfOslo}
+                        onChange={(e) => setDaysOutOfOslo(Math.max(0, Number(e.target.value)))}
+                        min="0"
+                        className="w-20 text-center bg-transparent border-0 text-gray-900 text-xl font-medium"
+                        placeholder="0"
+                      />
+                      <span className="text-sm text-gray-500 ml-1">day{daysOutOfOslo !== 1 ? 's' : ''}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-sm text-gray-500 mb-1">Number of locations</label>
+                    <div className="bg-gray-50 p-4 rounded-xl h-16 flex items-center justify-center">
+                      <input
+                        type="number"
+                        value={locations}
+                        onChange={(e) => setLocations(Math.max(1, Number(e.target.value)))}
+                        min={daysInOslo > 0 && daysOutOfOslo > 0 ? 2 : 1}
+                        className={`w-20 text-center bg-transparent border-0 text-gray-900 text-xl font-medium ${errors.locations ? 'ring-2 ring-red-500' : ''}`}
+                        placeholder="1"
+                      />
+                      <span className="text-sm text-gray-500 ml-1">location{locations !== 1 ? 's' : ''}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+                {errors.days && <p className="mt-1 text-sm text-red-500">{errors.days}</p>}
+                {errors.locations && <p className="mt-1 text-sm text-red-500">{errors.locations}</p>}
 
-              <div className="space-y-1">
-                <label className="block text-sm text-gray-500 mb-1">Shooting out of Oslo</label>
-                <div className="bg-gray-50 p-4 rounded-xl h-16 flex items-center justify-center">
-                  <input
-                    type="number"
-                    value={daysOutOfOslo}
-                    onChange={(e) => setDaysOutOfOslo(Math.max(0, Number(e.target.value)))}
-                    min="0"
-                    className="w-20 text-center bg-transparent border-0 text-gray-900 text-xl font-medium"
-                    placeholder="0"
-                  />
-                  <span className="text-sm text-gray-500 ml-1">day{daysOutOfOslo !== 1 ? 's' : ''}</span>
+                {/* Special equipment section */}
+                <div className="space-y-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Special Equipment</label>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    {equipmentOptions.map(equip => (
+                      <div key={equip} className="border border-gray-200 rounded-xl overflow-hidden">
+                        <div
+                          className={`p-3 cursor-pointer transition-all ${equipment.some(item => item.type === equip)
+                            ? 'bg-black text-white'
+                            : 'bg-gray-50 hover:bg-gray-100'
+                            }`}
+                          onClick={() => toggleEquipment(equip)}
+                        >
+                          <div className="font-medium text-center">{equip}</div>
+                        </div>
+
+                        {equipment.some(item => item.type === equip) && (
+                          <div className="bg-white p-2 border-t border-gray-200">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-full text-gray-700 hover:bg-gray-200"
+                                onClick={() => changeEquipmentDays(equip, -1)}
+                              >
+                                -
+                              </button>
+                              <span className="text-base font-medium">
+                                {equipment.find(item => item.type === equip)?.days || 1} {
+                                  (equipment.find(item => item.type === equip)?.days || 1) === 1 ? 'day' : 'days'
+                                }
+                              </span>
+                              <button
+                                type="button"
+                                className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-full text-gray-700 hover:bg-gray-200"
+                                onClick={() => changeEquipmentDays(equip, 1)}
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-1">
-                <label className="block text-sm text-gray-500 mb-1">Number of locations</label>
-                <div className="bg-gray-50 p-4 rounded-xl h-16 flex items-center justify-center">
-                  <input
-                    type="number"
-                    value={locations}
-                    onChange={(e) => setLocations(Math.max(1, Number(e.target.value)))}
-                    min={daysInOslo > 0 && daysOutOfOslo > 0 ? 2 : 1}
-                    className={`w-20 text-center bg-transparent border-0 text-gray-900 text-xl font-medium ${errors.locations ? 'ring-2 ring-red-500' : ''}`}
-                    placeholder="1"
-                  />
-                  <span className="text-sm text-gray-500 ml-1">location{locations !== 1 ? 's' : ''}</span>
-                </div>
-              </div>
-            </div>
-            {errors.days && <p className="mt-1 text-sm text-red-500">{errors.days}</p>}
-            {errors.locations && <p className="mt-1 text-sm text-red-500">{errors.locations}</p>}
+                {/* Condensed Summary */}
+                <div className="bg-gray-50 px-4 py-3 rounded-md mb-4">
+                  <h3 className="text-base font-semibold text-center text-gray-800 mb-2">Project Summary</h3>
 
-            {/* Special equipment section */}
-            <div className="space-y-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Special Equipment</label>
+                  <div className="grid grid-cols-2 gap-y-1 text-sm">
+                    <div className="text-gray-500">Total Shooting Days</div>
+                    <div className="text-gray-900">{totalDays} day{totalDays !== 1 ? 's' : ''}</div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                {equipmentOptions.map(equip => (
-                  <div key={equip} className="border border-gray-200 rounded-xl overflow-hidden">
-                    <div
-                      className={`p-3 cursor-pointer transition-all ${equipment.some(item => item.type === equip)
-                        ? 'bg-black text-white'
-                        : 'bg-gray-50 hover:bg-gray-100'
-                        }`}
-                      onClick={() => toggleEquipment(equip)}
-                    >
-                      <div className="font-medium text-center">{equip}</div>
+                    <div className="text-gray-500">Budget</div>
+                    <div className="text-gray-900">
+                      {formatNumber(budget)} {currencySettings[currency].symbol}
                     </div>
 
-                    {equipment.some(item => item.type === equip) && (
-                      <div className="bg-white p-2 border-t border-gray-200">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            type="button"
-                            className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-full text-gray-700 hover:bg-gray-200"
-                            onClick={() => changeEquipmentDays(equip, -1)}
-                          >
-                            -
-                          </button>
-                          <span className="text-base font-medium">
-                            {equipment.find(item => item.type === equip)?.days || 1} {
-                              (equipment.find(item => item.type === equip)?.days || 1) === 1 ? 'day' : 'days'
-                            }
-                          </span>
-                          <button
-                            type="button"
-                            className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-full text-gray-700 hover:bg-gray-200"
-                            onClick={() => changeEquipmentDays(equip, 1)}
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                    <div className="text-gray-500">Production Type</div>
+                    <div className="text-gray-900">
+                      {keywords.filter((id) => productionTypes.some((pt) => pt.id === id)).length > 0
+                        ? keywords
+                            .filter((id) => productionTypes.some((pt) => pt.id === id))
+                            .map((k) => productionTypes.find((pt) => pt.id === k)?.label)
+                            .join(', ')
+                        : '—'}
+                    </div>
+
+                    <div className="text-gray-500">Service Requirements</div>
+                    <div className="text-gray-900">
+                      {keywords.filter((id) => serviceRequirements.some((sr) => sr.id === id)).length > 0
+                        ? keywords
+                            .filter((id) => serviceRequirements.some((sr) => sr.id === id))
+                            .map((k) => serviceRequirements.find((sr) => sr.id === k)?.label)
+                            .join(', ')
+                        : '—'}
+                    </div>
+
+                    <div className="text-gray-500">Special Equipment</div>
+                    <div className="text-gray-900">
+                      {equipment.length > 0
+                        ? equipment
+                            .map((item) => `${item.type} (${item.days}d)`)
+                            .join(', ')
+                        : '—'}
+                    </div>
                   </div>
-                ))}
-              </div>
+                </div>
+
+                <div className="space-y-4">
+                  <button
+                    type="submit"
+                    className="w-full flex justify-center items-center gap-2 bg-black hover:bg-gray-800 text-white py-4 px-6 rounded-xl transition-colors disabled:opacity-70"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291z"></path>
+                      </svg>
+                    ) : (
+                      <Mail className="h-5 w-5" />
+                    )}
+                    Get your estimate
+                  </button>
+                </div>
+              </form>
             </div>
-
-{/* Condensed Summary */}
-<div className="bg-gray-50 px-4 py-3 rounded-md mb-4">
-  <h3 className="text-base font-semibold text-center text-gray-800 mb-2">Project Summary</h3>
-
-  <div className="grid grid-cols-2 gap-y-1 text-sm">
-    <div className="text-gray-500">Total Shooting Days</div>
-    <div className="text-gray-900">{totalDays} day{totalDays !== 1 ? 's' : ''}</div>
-
-    <div className="text-gray-500">Budget</div>
-    <div className="text-gray-900">
-      {formatNumber(budget)} {currencySettings[currency].symbol}
-    </div>
-
-    <div className="text-gray-500">Production Type</div>
-    <div className="text-gray-900">
-      {keywords.filter((id) => productionTypes.some((pt) => pt.id === id)).length > 0
-        ? keywords
-            .filter((id) => productionTypes.some((pt) => pt.id === id))
-            .map((k) => productionTypes.find((pt) => pt.id === k)?.label)
-            .join(', ')
-        : '—'}
-    </div>
-
-    <div className="text-gray-500">Service Requirements</div>
-    <div className="text-gray-900">
-      {keywords.filter((id) => serviceRequirements.some((sr) => sr.id === id)).length > 0
-        ? keywords
-            .filter((id) => serviceRequirements.some((sr) => sr.id === id))
-            .map((k) => serviceRequirements.find((sr) => sr.id === k)?.label)
-            .join(', ')
-        : '—'}
-    </div>
-
-    <div className="text-gray-500">Special Equipment</div>
-    <div className="text-gray-900">
-      {equipment.length > 0
-        ? equipment
-            .map((item) => `${item.type} (${item.days}d)`)
-            .join(', ')
-        : '—'}
-    </div>
-  </div>
-</div>
-
-
-            <div className="space-y-4">
-              <button
-                type="submit"
-                className="w-full flex justify-center items-center gap-2 bg-black hover:bg-gray-800 text-white py-4 px-6 rounded-xl transition-colors disabled:opacity-70"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291z"></path>
-                  </svg>
-                ) : (
-                  <Mail className="h-5 w-5" />
-                )}
-                Get your estimate
-                </button>
-              </div>
-            </form>
           </div>
-        </div> {/* ✅ Close step === 2 wrapper */}
+        </div>
       )}
 
       {/* STEP INDICATOR DOTS */}
@@ -671,7 +664,7 @@ if (keywords.includes('fixer') && totalDays > 1) {
           />
         </div>
       )}
-    </div> {/* ✅ Close .bg-[#ffffff] wrapper */}
+    </div>
   );
 };
 
