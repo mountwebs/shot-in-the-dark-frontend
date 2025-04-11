@@ -9,8 +9,8 @@
   /* Removed color-scheme to ensure consistent background */
   /* color-scheme: light dark; */
   
-  color: #2d3748;
-  background-color: #f4f6f8;
+  color: #47403a;
+  background-color: #f8f7f5;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -20,7 +20,7 @@
 
 /* Setting the blue-gray background for the whole body */
 body {
-  background-color: #f4f6f8;
+  background-color: #f8f7f5;
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
@@ -29,11 +29,11 @@ body {
 /* Global anchor styles */
 a {
   font-weight: 500;
-  color: #4a5568;
+  color: #47403a;
   text-decoration: inherit;
 }
 a:hover {
-  color: #2d3748;
+  color: #47403a;
 }
 
 /* Headings */
