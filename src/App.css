@@ -1,44 +1,61 @@
 @import "tailwindcss";
 
+/* Reset padding that was affecting layout */
 #root {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  padding: 0;
+  width: 100%;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
+/* Maintain responsive container behavior */
+@media (min-width: 1320px) {
+  #root {
+    padding: 0 20px;
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* Base styles for the calculator */
+.budget-calculator {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.card {
-  padding: 2em;
+/* Styling for the navigation bar */
+.nav-pills {
+  width: 16rem;
+  height: 3rem;
+  border-radius: 9999px;
+  background-color: white;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  position: relative;
+  overflow: hidden;
 }
 
-.read-the-docs {
-  color: #888;
+.nav-pill-indicator {
+  position: absolute;
+  height: calc(100% - 0.5rem);
+  width: calc(50% - 6px);
+  top: 0.25rem;
+  border-radius: 9999px;
+  background-color: #4a5568;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Smooth animations for content transitions */
+.slide-container {
+  transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+}
+
+.slide-left {
+  transform: translateX(-3%);
+  opacity: 0;
+}
+
+.slide-right {
+  transform: translateX(3%);
+  opacity: 0;
 }
