@@ -469,9 +469,9 @@ const BudgetCalculator = () => {
       </div>
       
       {/* Main content area with vertical centering */}
-      <div className="relative flex flex-col flex-grow justify-center -mt-8 sm:-mt-10">
-        <div className="max-w-6xl w-full mx-auto px-6">
-          <div className={`slide-container ${slideDirection ? `slide-${slideDirection}` : ''}`}>
+      <div className="relative flex flex-col flex-grow" style={{ marginTop: '70px' }}>
+  <div className="max-w-6xl w-full mx-auto px-6">
+    <div className={`slide-container ${slideDirection ? `slide-${slideDirection}` : ''}`}>
             {/* STEP 1 – INTRO SLIDE */}
             {step === 1 && (
               <div className="flex flex-col">
@@ -877,8 +877,10 @@ const BudgetCalculator = () => {
           
           {/* Logo at the bottom - fully opaque */}
           <div className="w-12 sm:w-16 mb-2 sm:mb-4">
-            <img src={Logo} alt="Line.Production Logo" className="w-full" />
-          </div>
+  <a href="https://www.line.productions/" target="_blank" rel="noopener noreferrer">
+    <img src={Logo} alt="Line.Production Logo" className="w-full" />
+  </a>
+</div>
         </div>
       )}
     </div>
