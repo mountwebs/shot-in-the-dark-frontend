@@ -41,6 +41,7 @@ const BudgetCalculator = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [slideDirection, setSlideDirection] = useState(null);
+  const [touchedFields, setTouchedFields] = useState({});
 
   // Constants and options
   const productionTypes = [
@@ -88,6 +89,14 @@ const BudgetCalculator = () => {
     }
   };
 
+  // Mark field as touched
+  const markFieldAsTouched = (field) => {
+    // Only track touched fields after first submission attempt
+    if (touchedFields.submit) {
+      setTouchedFields(prev => ({ ...prev, [field]: true }));
+    }
+  };
+
   // Format number with spaces
   const formatNumber = (num) => {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -125,47 +134,11 @@ const BudgetCalculator = () => {
     // Additional production types
     if (keywords.includes('stills')) dailyRate += 5000;
     if (keywords.includes('plates')) dailyRate += 8000;
-    if (keywords.includes('documentary')) dailyRate += 15000;
     
-    // Music video rate reduced by 15% as requested
-    if (keywords.includes('music')) dailyRate += 17000; // Reduced from 20000
-
-    // Service requirements
-    if (keywords.includes('local-talent')) dailyRate += 50000;
-    if (keywords.includes('permits')) dailyRate += 10000;
-
-    // Full crew adjustments - lower cost for stills, documentary, and music video
-    if (keywords.includes('full-crew')) {
-      if (keywords.includes('stills') || keywords.includes('documentary') || keywords.includes('music')) {
-        // Reduced rates for stills, documentary, and music video productions
-        if (daysOutOfOslo > 0) {
-          dailyRate = Math.max(dailyRate, 160000); // Lower rate for outside Oslo
-        } else {
-          dailyRate = Math.max(dailyRate, 120000); // Lower rate for in Oslo
-        }
-      } else {
-        // Standard rates for other production types
-        if (daysOutOfOslo > 0) {
-          dailyRate = Math.max(dailyRate, 300000);
-        } else {
-          dailyRate = Math.max(dailyRate, 200000);
-        }
-      }
-    }
-
-    // Technical equipment adjustment - reduced for stills, documentary, and music video
-    if (keywords.includes('tech-equipment')) {
-      if (keywords.includes('stills') || keywords.includes('documentary') || keywords.includes('music')) {
-        dailyRate += 10000; // Further reduced rate
-      } else {
-        dailyRate += 25000; // Standard rate
-      }
-    }
-
     // Calculate base budget for first day
     let minBudget = dailyRate;
     
-    // Add costs for additional days (with 10% reduction for each day as requested)
+    // Add costs for additional days (with 10% reduction for each day)
     if (totalDays > 1) {
       for (let day = 2; day <= totalDays; day++) {
         // Apply a 10% reduction for each additional day
@@ -178,10 +151,36 @@ const BudgetCalculator = () => {
     const locationFactor = 1 + (0.1 * (effectiveLocations - 1));
     minBudget = minBudget * locationFactor;
 
-    // Add fixer cost only if fixer is selected and totalDays > 1
-    if (keywords.includes('fixer') && totalDays > 1) {
-      const fixerCostPerDay = daysOutOfOslo > 0 ? 70000 : 40000;
-      minBudget += fixerCostPerDay * (totalDays - 1); // first day included in baseline
+    // Service requirements
+    if (keywords.includes('local-talent')) minBudget += 50000;
+    if (keywords.includes('permits')) minBudget += 10000;
+
+    // Full crew adjustments - lower cost for stills, documentary, and music video
+    if (keywords.includes('full-crew')) {
+      if (keywords.includes('stills') || keywords.includes('documentary') || keywords.includes('music')) {
+        // Reduced rates for stills, documentary, and music video productions
+        if (daysOutOfOslo > 0) {
+          minBudget = Math.max(minBudget, 160000); // Lower rate for outside Oslo
+        } else {
+          minBudget = Math.max(minBudget, 120000); // Lower rate for in Oslo
+        }
+      } else {
+        // Standard rates for other production types
+        if (daysOutOfOslo > 0) {
+          minBudget = Math.max(minBudget, 300000);
+        } else {
+          minBudget = Math.max(minBudget, 200000);
+        }
+      }
+    }
+
+    // Technical equipment adjustment - reduced for stills, documentary, and music video
+    if (keywords.includes('tech-equipment')) {
+      if (keywords.includes('stills') || keywords.includes('documentary') || keywords.includes('music')) {
+        minBudget += 10000; // Further reduced rate
+      } else {
+        minBudget += 25000; // Standard rate
+      }
     }
 
     // Add special equipment
@@ -190,6 +189,17 @@ const BudgetCalculator = () => {
         item.type === 'Road block' ? 40000 : 25000;
       minBudget += cost * item.days;
     });
+    
+    // Apply discounts for documentary and music video
+    // Documentary gets 20% off
+    if (keywords.includes('documentary')) {
+      minBudget = minBudget * 0.8; // 20% reduction
+    }
+    
+    // Music video gets 10% off
+    else if (keywords.includes('music')) {
+      minBudget = minBudget * 0.9; // 10% reduction
+    }
 
     // Return the calculated minimum budget in NOK
     return Math.round(minBudget);
@@ -197,16 +207,24 @@ const BudgetCalculator = () => {
 
   // Calculate maximum budget (dynamic based on inputs)
   const calculateMaximumBudget = () => {
+    // Calculate max in NOK first
     const min = minimumBudget;
+    let maxNOK;
     
     // If minimum is 0, use a default max of 100,000
-    if (min === 0) return 100000;
+    if (min === 0) {
+      maxNOK = 100000;
+    } else {
+      // Set max to be a multiple of the minimum, with different scaling based on size
+      if (min < 200000) maxNOK = min * 5; // 5x for smaller budgets
+      else if (min < 500000) maxNOK = min * 4; // 4x for medium budgets
+      else if (min < 1000000) maxNOK = min * 3; // 3x for larger budgets
+      else maxNOK = min * 2; // 2x for very large budgets
+    }
     
-    // Set max to be a multiple of the minimum, with different scaling based on size
-    if (min < 200000) return min * 5; // 5x for smaller budgets
-    if (min < 500000) return min * 4; // 4x for medium budgets
-    if (min < 1000000) return min * 3; // 3x for larger budgets
-    return min * 2; // 2x for very large budgets
+    // Convert max from NOK to the selected currency
+    if (currency === 'NOK') return maxNOK;
+    return Math.round(convertAmount(maxNOK, 'NOK', currency));
   };
 
   // Handle smooth step transition
@@ -220,6 +238,77 @@ const BudgetCalculator = () => {
     }
   };
 
+  // Validate form in real time
+  const validateFields = () => {
+    // Only validate if submit has been clicked
+    if (!touchedFields.submit) return true;
+    
+    const newErrors = {};
+    
+    // Only show errors for fields that have been touched or if the form was submitted
+    if (!title) {
+      newErrors.title = true;
+    }
+    
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      newErrors.email = true;
+    }
+    
+    // For days, require at least one day total (either in Oslo or out of Oslo)
+    if (totalDays < 1) {
+      newErrors.days = true;
+    }
+    
+    // For locations, validate based on shooting days
+    if (locations < 1 || (daysInOslo > 0 && daysOutOfOslo > 0 && locations < 2)) {
+      newErrors.locations = true;
+    }
+    
+    // For budget, show error if it's been interacted with
+    if (budget < minimumBudget && minimumBudget > 0) {
+      newErrors.budget = true;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Validate the entire form for submission
+  const validateForm = () => {
+    // Mark all fields as touched for error display
+    setTouchedFields({
+      title: true,
+      email: true,
+      days: true,
+      locations: true,
+      budget: true,
+      submit: true
+    });
+    
+    const newErrors = {};
+
+    if (!title) newErrors.title = true;
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) newErrors.email = true;
+    
+    // Require at least one day of shooting
+    if (totalDays < 1) {
+      newErrors.days = true;
+    }
+    
+    // Require at least one location
+    if (locations < 1 || (daysInOslo > 0 && daysOutOfOslo > 0 && locations < 2)) {
+      newErrors.locations = true;
+    }
+    
+    // Make sure budget is at least the minimum calculated amount
+    if (budget < minimumBudget && minimumBudget > 0) {
+      newErrors.budget = true;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   // Calculate total days and budget per day
   const totalDays = daysInOslo + daysOutOfOslo;
   const budgetPerDay = totalDays > 0 ? Math.round(budget / totalDays) : 0;
@@ -228,6 +317,7 @@ const BudgetCalculator = () => {
 
   // Toggle keyword with special handling for fixer + full-crew
   const toggleKeyword = (keywordId) => {
+    markFieldAsTouched('keywords');
     let newKeywords = [...keywords];
     
     // If clicking full-crew, remove fixer if it exists
@@ -249,7 +339,13 @@ const BudgetCalculator = () => {
     
     setKeywords(newKeywords);
     
-    // Update budget when selections change
+    // Store the original budget if we're adding fixer and the budget was already calculated
+    if (keywordId === 'fixer' && !keywords.includes(keywordId) && budget > 0 && totalDays > 0) {
+      // Don't increase budget when fixer is added
+      return;
+    }
+    
+    // For all other scenarios, update budget when selections change
     if (totalDays > 0) {
       setTimeout(() => {
         const calcBudget = calculateMinimumBudget();
@@ -262,6 +358,7 @@ const BudgetCalculator = () => {
 
   // Toggle equipment
   const toggleEquipment = (equipType) => {
+    markFieldAsTouched('equipment');
     let newEquipment;
     if (equipment.some(item => item.type === equipType)) {
       newEquipment = equipment.filter(item => item.type !== equipType);
@@ -284,6 +381,7 @@ const BudgetCalculator = () => {
 
   // Change equipment days
   const changeEquipmentDays = (equipType, change) => {
+    markFieldAsTouched('equipment');
     const newEquipment = equipment.map(item => {
       if (item.type === equipType) {
         return {
@@ -318,38 +416,8 @@ const BudgetCalculator = () => {
 
   // Handle budget slider change
   const handleBudgetChange = (e) => {
+    markFieldAsTouched('budget');
     setBudget(Number(e.target.value));
-  };
-
-  // Validate form
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!title) newErrors.title = "Project name is required";
-    if (!email) newErrors.email = "Email is required";
-    if (email && !/^\S+@\S+\.\S+$/.test(email)) newErrors.email = "Please enter a valid email";
-    
-    // Require at least one day of shooting
-    if (totalDays < 1) {
-      newErrors.days = "At least one shooting day is required";
-    }
-    
-    // Require at least one location
-    if (locations < 1) {
-      newErrors.locations = "At least one location is required";
-    }
-    
-    if (daysInOslo > 0 && daysOutOfOslo > 0 && locations < 2) {
-      newErrors.locations = "At least 2 locations required when shooting both in and out of Oslo";
-    }
-    
-    // Make sure budget is at least the minimum calculated amount
-    if (budget < minimumBudget && minimumBudget > 0) {
-      newErrors.budget = `Budget must be at least ${formatNumber(minimumBudget)} ${currencySettings[currency].symbol}`;
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   // Handle form submission
@@ -397,13 +465,22 @@ const BudgetCalculator = () => {
     }
   };
 
+  // Run validation whenever relevant fields change but only after first submit
+  useEffect(() => {
+    if (touchedFields.submit) {
+      validateFields();
+    }
+  }, [title, email, daysInOslo, daysOutOfOslo, locations, budget, currency, keywords, equipment]);
+
   // Effect to update locations when both in/out of Oslo selected
   useEffect(() => {
+    // Only automatically set locations to 2 if both in Oslo and out of Oslo days are selected
     if (daysInOslo > 0 && daysOutOfOslo > 0 && locations < 2) {
       setLocations(2);
     }
     
-    // Update budget when days change
+    // Update budget when days change, but don't mark fields as touched
+    // This prevents validation errors from showing until submit is clicked
     const newMinBudget = calculateMinimumBudget();
     if ((totalDays > 0 && (newMinBudget > budget || budget === 0))) {
       setBudget(newMinBudget);
@@ -421,21 +498,44 @@ const BudgetCalculator = () => {
   // Success message
   if (success) {
     return (
-      <div className="text-center py-16 bg-[#f8f7f5] rounded-2xl shadow-sm">
-        <div className="w-16 h-16 bg-[#f1f0ee] text-[#47403a] rounded-full flex items-center justify-center mx-auto mb-4">
-          <Check className="h-8 w-8" />
+      <div className="budget-calculator bg-[#f8f7f5] min-h-screen min-w-[320px] flex flex-col">
+        {/* Logo at the top - same as main page */}
+        <div className="pt-3 sm:pt-6 pb-2 sm:pb-4">
+          <div className="flex justify-center">
+            <div className="h-14 sm:h-16 w-14 sm:w-16 flex items-center justify-center">
+              <img src={LogoCalc} alt="Line.Calc Logo" className="h-6 sm:h-8" />
+            </div>
+          </div>
         </div>
-        <h2 className="text-3xl font-bold mb-3 text-[#2d2a26]">Estimate Sent!</h2>
-        <p className="text-[#47403a] mb-6 max-w-md mx-auto">
-          We've sent your project estimate to <span className="font-semibold">{email}</span>.
-          Please check your inbox.
-        </p>
-        <button
-          onClick={() => setSuccess(false)}
-          className="px-6 py-3 bg-[#47403a] text-white rounded-xl hover:bg-[#35302b] transition-colors"
-        >
-          Create Another Estimate
-        </button>
+        
+        {/* Success content - perfectly centered */}
+        <div className="flex-grow flex items-center justify-center px-6" style={{ marginTop: '-70px' }}>
+          <div className="text-center py-16 bg-white rounded-2xl shadow-sm max-w-md w-full mx-auto">
+            <div className="w-16 h-16 bg-[#f1f0ee] text-[#47403a] rounded-full flex items-center justify-center mx-auto mb-4">
+              <Check className="h-8 w-8" />
+            </div>
+            <h2 className="text-3xl font-bold mb-3 text-[#2d2a26]">Estimate Sent!</h2>
+            <p className="text-[#47403a] mb-6 max-w-md mx-auto px-4">
+              We've sent your project estimate to <span className="font-semibold">{email}</span>.
+              Please check your inbox.
+            </p>
+            <button
+              onClick={() => setSuccess(false)}
+              className="px-6 py-3 bg-[#47403a] text-white rounded-xl hover:bg-[#35302b] transition-colors"
+            >
+              Create Another Estimate
+            </button>
+          </div>
+        </div>
+        
+        {/* Logo at the bottom - same as main page */}
+        <div className="fixed bottom-6 sm:bottom-8 left-0 right-0 flex justify-center">
+          <div className="w-12 sm:w-16 mb-2 sm:mb-4">
+            <a href="https://www.line.productions/" target="_blank" rel="noopener noreferrer">
+              <img src={Logo} alt="Line.Production Logo" className="w-full" />
+            </a>
+          </div>
+        </div>
       </div>
     );
   }
@@ -470,8 +570,8 @@ const BudgetCalculator = () => {
       
       {/* Main content area with vertical centering */}
       <div className="relative flex flex-col flex-grow" style={{ marginTop: '70px' }}>
-  <div className="max-w-6xl w-full mx-auto px-6">
-    <div className={`slide-container ${slideDirection ? `slide-${slideDirection}` : ''}`}>
+        <div className="max-w-6xl w-full mx-auto px-6">
+          <div className={`slide-container ${slideDirection ? `slide-${slideDirection}` : ''}`}>
             {/* STEP 1 – INTRO SLIDE */}
             {step === 1 && (
               <div className="flex flex-col">
@@ -534,11 +634,13 @@ const BudgetCalculator = () => {
                     <input
                       type="text"
                       value={title}
-                      onChange={(e) => setTitle(e.target.value)}
+                      onChange={(e) => {
+                        setTitle(e.target.value);
+                        markFieldAsTouched('title');
+                      }}
                       className={`w-full p-4 bg-[#fbfaf8] border-0 rounded-xl text-[#2d2a26] placeholder-[#a39b92] ${errors.title ? 'ring-2 ring-red-400' : ''}`}
                       placeholder="Give your project a title"
                     />
-                    {errors.title && <p className="mt-1 text-sm text-red-500">{errors.title}</p>}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                       <input
@@ -552,12 +654,14 @@ const BudgetCalculator = () => {
                       <input
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          markFieldAsTouched('email');
+                        }}
                         className={`w-full p-4 bg-[#fbfaf8] border-0 rounded-xl text-[#2d2a26] placeholder-[#a39b92] ${errors.email ? 'ring-2 ring-red-400' : ''}`}
                         placeholder="Your email (required)"
                       />
                     </div>
-                    {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
 
                     <div className="mt-6">
                       <div className="relative">
@@ -567,6 +671,7 @@ const BudgetCalculator = () => {
                           onChange={(e) => {
                             const value = e.target.value.replace(/\D/g, '');
                             setBudget(value === '' ? 0 : Number(value));
+                            markFieldAsTouched('budget');
                           }}
                           className={`w-full p-4 bg-[#fbfaf8] border-0 rounded-xl text-[#2d2a26] text-left placeholder-[#a39b92] ${errors.budget ? 'ring-2 ring-red-400' : ''}`}
                           placeholder="Add details to calculate"
@@ -598,13 +703,12 @@ const BudgetCalculator = () => {
                             className="w-full h-2 bg-[#f1f0ee] rounded-lg appearance-none cursor-pointer accent-[#47403a]"
                           />
                           <div className="flex justify-between text-xs text-[#6f655c] mt-1">
-                            <span>{formatNumber(minimumBudget)}</span>
-                            <span>{formatNumber(maximumBudget)}</span>
+                            <span>{formatNumber(minimumBudget)} {currencySettings[currency].symbol}</span>
+                            <span>{formatNumber(maximumBudget)} {currencySettings[currency].symbol}</span>
                           </div>
                         </div>
                       )}
                     </div>
-                    {errors.budget && <p className="mt-1 text-sm text-red-500">{errors.budget}</p>}
                   </div>
 
                   {/* Keywords section */}
@@ -662,13 +766,16 @@ const BudgetCalculator = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <label className="block text-sm text-[#6f655c] mb-1">Shooting in Oslo</label>
-                        <div className="bg-[#fbfaf8] p-4 rounded-xl h-16 flex items-center justify-center">
+                        <div className={`bg-[#fbfaf8] p-4 rounded-xl h-16 flex items-center justify-center ${errors.days ? 'ring-2 ring-red-400' : ''}`}>
                           <input
                             type="number"
                             value={daysInOslo}
-                            onChange={(e) => setDaysInOslo(Math.max(0, Number(e.target.value)))}
+                            onChange={(e) => {
+                              setDaysInOslo(Math.max(0, Number(e.target.value)));
+                              markFieldAsTouched('days');
+                            }}
                             min="0"
-                            className={`w-20 text-center bg-transparent border-0 text-[#2d2a26] text-xl font-medium ${errors.days ? 'ring-2 ring-red-400' : ''}`}
+                            className="w-20 text-center bg-transparent border-0 text-[#2d2a26] text-xl font-medium"
                             placeholder="0"
                           />
                           <span className="text-sm text-[#6f655c] ml-1">day{daysInOslo !== 1 ? 's' : ''}</span>
@@ -677,11 +784,14 @@ const BudgetCalculator = () => {
 
                       <div className="space-y-2">
                         <label className="block text-sm text-[#6f655c] mb-1">Shooting out of Oslo</label>
-                        <div className="bg-[#fbfaf8] p-4 rounded-xl h-16 flex items-center justify-center">
+                        <div className={`bg-[#fbfaf8] p-4 rounded-xl h-16 flex items-center justify-center ${errors.days ? 'ring-2 ring-red-400' : ''}`}>
                           <input
                             type="number"
                             value={daysOutOfOslo}
-                            onChange={(e) => setDaysOutOfOslo(Math.max(0, Number(e.target.value)))}
+                            onChange={(e) => {
+                              setDaysOutOfOslo(Math.max(0, Number(e.target.value)));
+                              markFieldAsTouched('days');
+                            }}
                             min="0"
                             className="w-20 text-center bg-transparent border-0 text-[#2d2a26] text-xl font-medium"
                             placeholder="0"
@@ -692,21 +802,22 @@ const BudgetCalculator = () => {
 
                       <div className="space-y-2">
                         <label className="block text-sm text-[#6f655c] mb-1">Number of locations</label>
-                        <div className="bg-[#fbfaf8] p-4 rounded-xl h-16 flex items-center justify-center">
+                        <div className={`bg-[#fbfaf8] p-4 rounded-xl h-16 flex items-center justify-center ${errors.locations ? 'ring-2 ring-red-400' : ''}`}>
                           <input
                             type="number"
                             value={locations}
-                            onChange={(e) => setLocations(Math.max(0, Number(e.target.value)))}
+                            onChange={(e) => {
+                              setLocations(Math.max(0, Number(e.target.value)));
+                              markFieldAsTouched('locations');
+                            }}
                             min={daysInOslo > 0 && daysOutOfOslo > 0 ? 2 : 0}
-                            className={`w-20 text-center bg-transparent border-0 text-[#2d2a26] text-xl font-medium ${errors.locations ? 'ring-2 ring-red-400' : ''}`}
+                            className="w-20 text-center bg-transparent border-0 text-[#2d2a26] text-xl font-medium"
                             placeholder="0"
                           />
                           <span className="text-sm text-[#6f655c] ml-1">location{locations !== 1 ? 's' : ''}</span>
                         </div>
                       </div>
                     </div>
-                    {errors.days && <p className="mt-1 text-sm text-red-500">{errors.days}</p>}
-                    {errors.locations && <p className="mt-1 text-sm text-red-500">{errors.locations}</p>}
 
                     {/* Special equipment section - disabled until days are added */}
                     <div className="space-y-4">
@@ -822,6 +933,7 @@ const BudgetCalculator = () => {
                         type="submit"
                         className="w-full flex justify-center items-center gap-2 bg-[#47403a] hover:bg-[#35302b] text-white py-4 px-6 rounded-xl transition-colors disabled:opacity-70 shadow-sm"
                         disabled={isSubmitting || totalDays === 0 || budget === 0}
+                        onClick={() => markFieldAsTouched('submit')}
                       >
                         {isSubmitting ? (
                           <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -877,10 +989,10 @@ const BudgetCalculator = () => {
           
           {/* Logo at the bottom - fully opaque */}
           <div className="w-12 sm:w-16 mb-2 sm:mb-4">
-  <a href="https://www.line.productions/" target="_blank" rel="noopener noreferrer">
-    <img src={Logo} alt="Line.Production Logo" className="w-full" />
-  </a>
-</div>
+            <a href="https://www.line.productions/" target="_blank" rel="noopener noreferrer">
+              <img src={Logo} alt="Line.Production Logo" className="w-full" />
+            </a>
+          </div>
         </div>
       )}
     </div>
