@@ -89,6 +89,51 @@ const BudgetCalculator = () => {
     }
   };
 
+  // Calculate recommended budget with specialized adjustments
+  const calculateRecommendedBudget = () => {
+    const min = minimumBudget;
+    // Return 0 if minimum is 0
+    if (min === 0) return 0;
+    
+    // Start with base recommended (55% above minimum)
+    let recommendationMultiplier = 1.55;
+    
+    // Apply specific adjustments based on production type and requirements
+    if (keywords.includes('film')) {
+      recommendationMultiplier += 0.20; // Additional 20% for film productions
+    }
+    
+    if (keywords.includes('full-crew')) {
+      recommendationMultiplier += 0.25; // Additional 25% for full crew
+    }
+    
+    if (keywords.includes('car')) {
+      recommendationMultiplier += 0.20; // Additional 20% for car productions
+    }
+    
+    // Additional % for extra days (beyond the first day)
+    if (totalDays > 1) {
+      recommendationMultiplier += 0.15 * (totalDays - 1); // 15% more for each additional day
+    }
+    
+    return Math.round(min * recommendationMultiplier);
+  };
+
+  // Get slider background color based on budget value
+  const getSliderColor = (value) => {
+    const recommendedBudget = calculateRecommendedBudget();
+    const minBudget = minimumBudget;
+    
+    // If value is at or below minimum, return red
+    if (value <= minBudget) return '#f44336';
+    
+    // If value is at or below recommended, return orange 
+    if (value <= recommendedBudget) return '#ff9800';
+    
+    // If value is above recommended, return green
+    return '#4caf50';
+  };
+
   // Mark field as touched
   const markFieldAsTouched = (field) => {
     // Only track touched fields after first submission attempt
@@ -314,10 +359,10 @@ const BudgetCalculator = () => {
   const budgetPerDay = totalDays > 0 ? Math.round(budget / totalDays) : 0;
   const minimumBudget = calculateMinimumBudget();
   const maximumBudget = calculateMaximumBudget();
+  const recommendedBudget = calculateRecommendedBudget();
 
   // Toggle keyword with special handling for fixer + full-crew
   const toggleKeyword = (keywordId) => {
-    markFieldAsTouched('keywords');
     let newKeywords = [...keywords];
     
     // If clicking full-crew, remove fixer if it exists
@@ -340,25 +385,23 @@ const BudgetCalculator = () => {
     setKeywords(newKeywords);
     
     // Store the original budget if we're adding fixer and the budget was already calculated
-    if (keywordId === 'fixer' && !keywords.includes(keywordId) && budget > 0 && totalDays > 0) {
+    if (keywordId === 'fixer' && !keywords.includes(keywordId) && budget > 0) {
       // Don't increase budget when fixer is added
       return;
     }
     
-    // For all other scenarios, update budget when selections change
-    if (totalDays > 0) {
+    // For all other scenarios where user hasn't set a budget, use the recommended
+    if (totalDays > 0 && budget === 0) {
       setTimeout(() => {
         const calcBudget = calculateMinimumBudget();
-        if (calcBudget > budget || budget === 0) {
-          setBudget(calcBudget);
-        }
+        const newRecommendedBudget = calculateRecommendedBudget();
+        setBudget(newRecommendedBudget);
       }, 0);
     }
   };
 
   // Toggle equipment
   const toggleEquipment = (equipType) => {
-    markFieldAsTouched('equipment');
     let newEquipment;
     if (equipment.some(item => item.type === equipType)) {
       newEquipment = equipment.filter(item => item.type !== equipType);
@@ -368,20 +411,17 @@ const BudgetCalculator = () => {
     
     setEquipment(newEquipment);
     
-    // Update budget when selections change
-    if (totalDays > 0) {
+    // Only update budget if it hasn't been set by the user
+    if (totalDays > 0 && budget === 0) {
       setTimeout(() => {
-        const calcBudget = calculateMinimumBudget();
-        if (calcBudget > budget || budget === 0) {
-          setBudget(calcBudget);
-        }
+        const newRecommendedBudget = calculateRecommendedBudget();
+        setBudget(newRecommendedBudget);
       }, 0);
     }
   };
 
   // Change equipment days
   const changeEquipmentDays = (equipType, change) => {
-    markFieldAsTouched('equipment');
     const newEquipment = equipment.map(item => {
       if (item.type === equipType) {
         return {
@@ -394,13 +434,11 @@ const BudgetCalculator = () => {
     
     setEquipment(newEquipment);
     
-    // Update budget when selections change
-    if (totalDays > 0) {
+    // Only update budget if it hasn't been set by the user
+    if (totalDays > 0 && budget === 0) {
       setTimeout(() => {
-        const calcBudget = calculateMinimumBudget();
-        if (calcBudget > budget || budget === 0) {
-          setBudget(calcBudget);
-        }
+        const newRecommendedBudget = calculateRecommendedBudget();
+        setBudget(newRecommendedBudget);
       }, 0);
     }
   };
@@ -412,12 +450,6 @@ const BudgetCalculator = () => {
     const newBudget = Math.round(convertAmount(budget, currency, newCurrency));
     setBudget(newBudget);
     setCurrency(newCurrency);
-  };
-
-  // Handle budget slider change
-  const handleBudgetChange = (e) => {
-    markFieldAsTouched('budget');
-    setBudget(Number(e.target.value));
   };
 
   // Handle form submission
@@ -482,16 +514,32 @@ const BudgetCalculator = () => {
     // Update budget when days change, but don't mark fields as touched
     // This prevents validation errors from showing until submit is clicked
     const newMinBudget = calculateMinimumBudget();
-    if ((totalDays > 0 && (newMinBudget > budget || budget === 0))) {
-      setBudget(newMinBudget);
+    const newRecommendedBudget = Math.round(newMinBudget * 1.55);
+    
+    // Only update budget if not set yet or it's below the new minimum
+    if (totalDays > 0 && (budget === 0 || budget < newMinBudget)) {
+      setBudget(newRecommendedBudget);
     }
   }, [daysInOslo, daysOutOfOslo]);
 
   // Effect to update budget when minimum changes
   useEffect(() => {
     const newMinBudget = calculateMinimumBudget();
-    if (totalDays > 0 && (newMinBudget > budget || budget === 0)) {
-      setBudget(newMinBudget);
+    
+    // Only update budget if not set yet or it's below the new minimum
+    if (totalDays > 0 && (budget === 0 || budget < newMinBudget)) {
+      const newRecommendedBudget = calculateRecommendedBudget();
+      setBudget(newRecommendedBudget);
+    }
+    
+    // Force minimum budget validation check
+    if (touchedFields.submit && budget < newMinBudget) {
+      setErrors(prev => ({...prev, budget: true}));
+    } else if (touchedFields.submit && errors.budget && budget >= newMinBudget) {
+      // Remove budget error if budget is now valid
+      const newErrors = {...errors};
+      delete newErrors.budget;
+      setErrors(newErrors);
     }
   }, [minimumBudget, locations, keywords, equipment]);
 
@@ -542,7 +590,7 @@ const BudgetCalculator = () => {
 
   return (
     <div className="budget-calculator bg-[#f8f7f5] min-h-screen min-w-[320px] flex flex-col pb-20">
-      {/* CSS for slide transitions */}
+      {/* CSS for slide transitions and subtle slider */}
       <style jsx>{`
         .slide-container {
           transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
@@ -556,6 +604,34 @@ const BudgetCalculator = () => {
         .slide-right {
           transform: translateX(3%);
           opacity: 0;
+        }
+        
+        /* Custom slider thumb styling */
+        input[type=range]::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: white;
+          border: 1px solid #47403a;
+          cursor: pointer;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        input[type=range]::-moz-range-thumb {
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: white;
+          border: 1px solid #47403a;
+          cursor: pointer;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        /* Remove default focus styles */
+        input[type=range]:focus {
+          outline: none;
         }
       `}</style>
       
@@ -636,7 +712,6 @@ const BudgetCalculator = () => {
                       value={title}
                       onChange={(e) => {
                         setTitle(e.target.value);
-                        markFieldAsTouched('title');
                       }}
                       className={`w-full p-4 bg-[#fbfaf8] border-0 rounded-xl text-[#2d2a26] placeholder-[#a39b92] ${errors.title ? 'ring-2 ring-red-400' : ''}`}
                       placeholder="Give your project a title"
@@ -656,7 +731,6 @@ const BudgetCalculator = () => {
                         value={email}
                         onChange={(e) => {
                           setEmail(e.target.value);
-                          markFieldAsTouched('email');
                         }}
                         className={`w-full p-4 bg-[#fbfaf8] border-0 rounded-xl text-[#2d2a26] placeholder-[#a39b92] ${errors.email ? 'ring-2 ring-red-400' : ''}`}
                         placeholder="Your email (required)"
@@ -671,7 +745,6 @@ const BudgetCalculator = () => {
                           onChange={(e) => {
                             const value = e.target.value.replace(/\D/g, '');
                             setBudget(value === '' ? 0 : Number(value));
-                            markFieldAsTouched('budget');
                           }}
                           className={`w-full p-4 bg-[#fbfaf8] border-0 rounded-xl text-[#2d2a26] text-left placeholder-[#a39b92] ${errors.budget ? 'ring-2 ring-red-400' : ''}`}
                           placeholder="Add details to calculate"
@@ -691,7 +764,7 @@ const BudgetCalculator = () => {
                         </div>
                       </div>
                       
-                      {/* Budget slider - only visible when budget > 0 */}
+                      {/* Budget slider - only visible when budget > 0 with orange-blue gradient */}
                       {budget > 0 && (
                         <div className="mt-4 px-1">
                           <input
@@ -699,10 +772,19 @@ const BudgetCalculator = () => {
                             min={minimumBudget}
                             max={maximumBudget}
                             value={budget}
-                            onChange={handleBudgetChange}
-                            className="w-full h-2 bg-[#f1f0ee] rounded-lg appearance-none cursor-pointer accent-[#47403a]"
+                            onChange={(e) => setBudget(Number(e.target.value))}
+                            className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                            style={{ 
+                              background: `linear-gradient(to right, 
+                                rgba(255, 149, 0, 0.7) 0%, 
+                                rgba(255, 183, 77, 0.7) ${Math.min(100, (recommendedBudget - minimumBudget) / (maximumBudget - minimumBudget) * 100) * 0.5}%, 
+                                rgba(66, 133, 244, 0.7) 100%)`,
+                              WebkitAppearance: 'none'
+                            }}
                           />
-                          <div className="flex justify-between text-xs text-[#6f655c] mt-1">
+                          
+                          {/* Only show min and max values */}
+                          <div className="flex justify-between text-xs text-[#6f655c] mt-2">
                             <span>{formatNumber(minimumBudget)} {currencySettings[currency].symbol}</span>
                             <span>{formatNumber(maximumBudget)} {currencySettings[currency].symbol}</span>
                           </div>
@@ -772,7 +854,6 @@ const BudgetCalculator = () => {
                             value={daysInOslo}
                             onChange={(e) => {
                               setDaysInOslo(Math.max(0, Number(e.target.value)));
-                              markFieldAsTouched('days');
                             }}
                             min="0"
                             className="w-20 text-center bg-transparent border-0 text-[#2d2a26] text-xl font-medium"
@@ -790,7 +871,6 @@ const BudgetCalculator = () => {
                             value={daysOutOfOslo}
                             onChange={(e) => {
                               setDaysOutOfOslo(Math.max(0, Number(e.target.value)));
-                              markFieldAsTouched('days');
                             }}
                             min="0"
                             className="w-20 text-center bg-transparent border-0 text-[#2d2a26] text-xl font-medium"
@@ -808,7 +888,6 @@ const BudgetCalculator = () => {
                             value={locations}
                             onChange={(e) => {
                               setLocations(Math.max(0, Number(e.target.value)));
-                              markFieldAsTouched('locations');
                             }}
                             min={daysInOslo > 0 && daysOutOfOslo > 0 ? 2 : 0}
                             className="w-20 text-center bg-transparent border-0 text-[#2d2a26] text-xl font-medium"
