@@ -57,7 +57,7 @@ const BudgetCalculator = () => {
 
   const serviceRequirements = [
     { id: 'fixer', label: 'Fixer' },
-    { id: 'full-crew', label: 'Full Crew' },
+    { id: 'full-crew', label: 'Crew' },
     { id: 'tech-equipment', label: 'Technical Equipment' },
     { id: 'local-talent', label: 'Local Talent' },
     { id: 'permits', label: 'Permits' }
@@ -95,25 +95,53 @@ const BudgetCalculator = () => {
     // Return 0 if minimum is 0
     if (min === 0) return 0;
     
-    // Start with base recommended (55% above minimum)
-    let recommendationMultiplier = 1.55;
+    // Start with base recommended (60% above minimum - increased from 55%)
+    let recommendationMultiplier = 1.6;
     
-    // Apply specific adjustments based on production type and requirements
+    // Production type multipliers with cumulative effects
     if (keywords.includes('film')) {
-      recommendationMultiplier += 0.20; // Additional 20% for film productions
-    }
-    
-    if (keywords.includes('full-crew')) {
-      recommendationMultiplier += 0.25; // Additional 25% for full crew
+      recommendationMultiplier += 0.25; // Increased from 0.20
     }
     
     if (keywords.includes('car')) {
-      recommendationMultiplier += 0.20; // Additional 20% for car productions
+      recommendationMultiplier += 0.25; // Increased from 0.20
+    }
+    
+    // Special multiplier if BOTH car AND film are selected (premium production)
+    if (keywords.includes('car') && keywords.includes('film')) {
+      recommendationMultiplier += 0.15; // Additional premium for combined high-end production
+    }
+    
+    // Full crew adjustments based on location
+    if (keywords.includes('full-crew')) {
+      recommendationMultiplier += 0.25; // Base adjustment for full crew
+      
+      // Additional premium for full crew outside Oslo
+      if (daysOutOfOslo > 0) {
+        recommendationMultiplier += 0.15; // Extra costs for crew travel/accommodations
+      }
+    }
+    
+    // Technical equipment premium
+    if (keywords.includes('tech-equipment')) {
+      recommendationMultiplier += 0.15;
+    }
+    
+    // Special equipment premium (for selected items)
+    const specialEquipmentCount = equipment.length;
+    if (specialEquipmentCount > 0) {
+      // Add 10% for each piece of special equipment
+      recommendationMultiplier += 0.1 * specialEquipmentCount;
+    }
+    
+    // Additional % for extra locations beyond the first
+    if (locations > 1) {
+      recommendationMultiplier += 0.1 * (locations - 1);
     }
     
     // Additional % for extra days (beyond the first day)
     if (totalDays > 1) {
-      recommendationMultiplier += 0.15 * (totalDays - 1); // 15% more for each additional day
+      recommendationMultiplier += 0.15 * (totalDays - 1);
     }
     
     return Math.round(min * recommendationMultiplier);
@@ -514,7 +542,7 @@ const BudgetCalculator = () => {
     // Update budget when days change, but don't mark fields as touched
     // This prevents validation errors from showing until submit is clicked
     const newMinBudget = calculateMinimumBudget();
-    const newRecommendedBudget = Math.round(newMinBudget * 1.55);
+    const newRecommendedBudget = calculateRecommendedBudget();
     
     // Only update budget if not set yet or it's below the new minimum
     if (totalDays > 0 && (budget === 0 || budget < newMinBudget)) {
@@ -723,7 +751,7 @@ const BudgetCalculator = () => {
                         value={companyName}
                         onChange={(e) => setCompanyName(e.target.value)}
                         className="w-full p-4 bg-[#fbfaf8] border-0 rounded-xl text-[#2d2a26] placeholder-[#a39b92]"
-                        placeholder="Company name (optional)"
+                        placeholder="Company name"
                       />
 
                       <input
