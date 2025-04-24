@@ -1,14 +1,80 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="src/assets/Logo calc.png" /> <!-- Update the href with your logo file -->
+    
+    <!-- Favicons for various platforms -->
+    <link rel="icon" type="image/svg+xml" href="src/assets/Logo calc.png" />
+    <link rel="apple-touch-icon" href="src/assets/Logo calc.png" />
+    <link rel="shortcut icon" href="src/assets/Logo calc.png" />
+    
+    <!-- Responsive viewport -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Line.Calc Budget Calculator</title> <!-- Changed the title here -->
-    <meta name="description" content="Budget calculator for service productions in Norway" /> <!-- Added description -->
+    
+    <!-- Primary Meta Tags -->
+    <title>Line.Calc - Instant Budget Calculator for Productions in Norway</title>
+    <meta name="title" content="Line.Calc - Instant Budget Calculator for Productions in Norway">
+    <meta name="description" content="Get an instant budget estimate for your film, commercial, or photo production in Norway. Our free tool provides reliable cost estimates based on industry standards." />
+    <meta name="keywords" content="norway production budget, film budget norway, commercial production norway, service production, line production, photo shoot budget, oslo filming, norwegian production services" />
+    
+    <!-- Open Graph / Facebook Meta Tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://calc.line.productions/" />
+    <meta property="og:title" content="Line.Calc - Instant Budget Calculator for Productions in Norway" />
+    <meta property="og:description" content="Get an instant budget estimate for your film, commercial, or photo production in Norway. Our free tool provides reliable cost estimates based on industry standards." />
+    <meta property="og:image" content="src/assets/Bilder/Work 4.png" />
+    
+    <!-- Twitter Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://calc.line.productions/" />
+    <meta name="twitter:title" content="Line.Calc - Instant Budget Calculator for Productions in Norway" />
+    <meta name="twitter:description" content="Get an instant budget estimate for your film, commercial, or photo production in Norway. Our free tool provides reliable cost estimates based on industry standards." />
+    <meta name="twitter:image" content="src/assets/Bilder/Work 4.png" />
+    
+    <!-- Additional SEO tags -->
+    <meta name="author" content="Line.Production" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="revisit-after" content="7 days" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://calc.line.productions/" />
+    
+    <!-- Theme color for browser UI -->
+    <meta name="theme-color" content="#f8f7f5" />
+
+    <!-- Link to manifest file for PWA capabilities -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Preconnect to any third-party domains to improve performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Optional: Structured data for rich search results -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Line.Calc Budget Calculator",
+        "url": "https://calc.line.productions/",
+        "description": "Instant budget calculator for film, commercial and photo productions in Norway",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "NOK"
+        },
+        "provider": {
+          "@type": "Organization",
+          "name": "Line.Production",
+          "url": "https://www.line.productions/"
+        }
+      }
+    </script>
   </body>
 </html>
