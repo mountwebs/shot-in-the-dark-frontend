@@ -91,7 +91,7 @@ const BudgetCalculator = () => {
 
   // Calculate recommended budget with specialized adjustments
   const calculateRecommendedBudget = () => {
-    const min = minimumBudget;
+    const min = calculateMinimumBudget();
     // Return 0 if minimum is 0
     if (min === 0) return 0;
     
@@ -147,21 +147,6 @@ const BudgetCalculator = () => {
     return Math.round(min * recommendationMultiplier);
   };
 
-  // Get slider background color based on budget value
-  const getSliderColor = (value) => {
-    const recommendedBudget = calculateRecommendedBudget();
-    const minBudget = minimumBudget;
-    
-    // If value is at or below minimum, return red
-    if (value <= minBudget) return '#f44336';
-    
-    // If value is at or below recommended, return orange 
-    if (value <= recommendedBudget) return '#ff9800';
-    
-    // If value is above recommended, return green
-    return '#4caf50';
-  };
-
   // Mark field as touched
   const markFieldAsTouched = (field) => {
     // Only track touched fields after first submission attempt
@@ -175,7 +160,7 @@ const BudgetCalculator = () => {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   };
 
-  // Convert amount between currencies
+  // Convert amount between currencies - always using NOK as base
   const convertAmount = (amount, from, to) => {
     // Convert to NOK first if not already
     const inNOK = from === 'NOK' ? amount : amount / currencySettings[from].rate;
@@ -183,7 +168,7 @@ const BudgetCalculator = () => {
     return to === 'NOK' ? inNOK : inNOK * currencySettings[to].rate;
   };
 
-  // Calculate minimum budget
+  // Calculate minimum budget in NOK and then convert to current currency
   const calculateMinimumBudget = () => {
     const totalDays = daysInOslo + daysOutOfOslo;
     
@@ -274,30 +259,35 @@ const BudgetCalculator = () => {
       minBudget = minBudget * 0.9; // 10% reduction
     }
 
-    // Return the calculated minimum budget in NOK
-    return Math.round(minBudget);
+    // Calculate in NOK first
+    const minBudgetNOK = Math.round(minBudget);
+    
+    // Then convert to the selected currency
+    if (currency === 'NOK') {
+      return minBudgetNOK;
+    } else {
+      return Math.round(minBudgetNOK * currencySettings[currency].rate);
+    }
   };
 
   // Calculate maximum budget (dynamic based on inputs)
   const calculateMaximumBudget = () => {
     // Calculate max in NOK first
     const min = minimumBudget;
-    let maxNOK;
+    let maxValue;
     
     // If minimum is 0, use a default max of 100,000
     if (min === 0) {
-      maxNOK = 100000;
+      maxValue = 100000;
     } else {
       // Set max to be a multiple of the minimum, with different scaling based on size
-      if (min < 200000) maxNOK = min * 5; // 5x for smaller budgets
-      else if (min < 500000) maxNOK = min * 4; // 4x for medium budgets
-      else if (min < 1000000) maxNOK = min * 3; // 3x for larger budgets
-      else maxNOK = min * 2; // 2x for very large budgets
+      if (min < 200000) maxValue = min * 5; // 5x for smaller budgets
+      else if (min < 500000) maxValue = min * 4; // 4x for medium budgets
+      else if (min < 1000000) maxValue = min * 3; // 3x for larger budgets
+      else maxValue = min * 2; // 2x for very large budgets
     }
     
-    // Convert max from NOK to the selected currency
-    if (currency === 'NOK') return maxNOK;
-    return Math.round(convertAmount(maxNOK, 'NOK', currency));
+    return Math.round(maxValue);
   };
 
   // Handle smooth step transition
@@ -385,6 +375,8 @@ const BudgetCalculator = () => {
   // Calculate total days and budget per day
   const totalDays = daysInOslo + daysOutOfOslo;
   const budgetPerDay = totalDays > 0 ? Math.round(budget / totalDays) : 0;
+  
+  // Calculate min, max, and recommended budget values
   const minimumBudget = calculateMinimumBudget();
   const maximumBudget = calculateMaximumBudget();
   const recommendedBudget = calculateRecommendedBudget();
@@ -412,16 +404,9 @@ const BudgetCalculator = () => {
     
     setKeywords(newKeywords);
     
-    // Store the original budget if we're adding fixer and the budget was already calculated
-    if (keywordId === 'fixer' && !keywords.includes(keywordId) && budget > 0) {
-      // Don't increase budget when fixer is added
-      return;
-    }
-    
     // For all other scenarios where user hasn't set a budget, use the recommended
     if (totalDays > 0 && budget === 0) {
       setTimeout(() => {
-        const calcBudget = calculateMinimumBudget();
         const newRecommendedBudget = calculateRecommendedBudget();
         setBudget(newRecommendedBudget);
       }, 0);
@@ -471,13 +456,39 @@ const BudgetCalculator = () => {
     }
   };
 
-  // Handle currency change
+  // FIXED: Handle budget input change
+  const handleBudgetInputChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '');
+    const newBudget = value === '' ? 0 : Number(value);
+    setBudget(newBudget);
+  };
+
+  // FIXED: Handle slider change
+  const handleBudgetSliderChange = (e) => {
+    const newBudget = Number(e.target.value);
+    setBudget(newBudget);
+  };
+
+  // FIXED: Handle currency change with proper calculation order
   const handleCurrencyChange = (e) => {
     const newCurrency = e.target.value;
-    // Convert budget to new currency
-    const newBudget = Math.round(convertAmount(budget, currency, newCurrency));
-    setBudget(newBudget);
-    setCurrency(newCurrency);
+    const oldCurrency = currency;
+    
+    // If budget is already set, convert it
+    if (budget > 0) {
+      // Convert budget to NOK first (if not already)
+      const budgetInNOK = oldCurrency === 'NOK' ? budget : budget / currencySettings[oldCurrency].rate;
+      
+      // Update currency first
+      setCurrency(newCurrency);
+      
+      // Then calculate and set new budget value
+      const newBudget = Math.round(budgetInNOK * (newCurrency === 'NOK' ? 1 : currencySettings[newCurrency].rate));
+      setBudget(newBudget);
+    } else {
+      // Just update currency if no budget is set yet
+      setCurrency(newCurrency);
+    }
   };
 
   // Handle form submission
@@ -539,37 +550,25 @@ const BudgetCalculator = () => {
       setLocations(2);
     }
     
-    // Update budget when days change, but don't mark fields as touched
-    // This prevents validation errors from showing until submit is clicked
-    const newMinBudget = calculateMinimumBudget();
-    const newRecommendedBudget = calculateRecommendedBudget();
-    
-    // Only update budget if not set yet or it's below the new minimum
-    if (totalDays > 0 && (budget === 0 || budget < newMinBudget)) {
+    // Update budget when days change
+    if (totalDays > 0 && budget === 0) {
+      const newRecommendedBudget = calculateRecommendedBudget();
       setBudget(newRecommendedBudget);
     }
   }, [daysInOslo, daysOutOfOslo]);
 
   // Effect to update budget when minimum changes
   useEffect(() => {
-    const newMinBudget = calculateMinimumBudget();
-    
-    // Only update budget if not set yet or it's below the new minimum
-    if (totalDays > 0 && (budget === 0 || budget < newMinBudget)) {
-      const newRecommendedBudget = calculateRecommendedBudget();
-      setBudget(newRecommendedBudget);
-    }
-    
     // Force minimum budget validation check
-    if (touchedFields.submit && budget < newMinBudget) {
+    if (touchedFields.submit && budget < minimumBudget && minimumBudget > 0) {
       setErrors(prev => ({...prev, budget: true}));
-    } else if (touchedFields.submit && errors.budget && budget >= newMinBudget) {
+    } else if (touchedFields.submit && errors.budget && budget >= minimumBudget) {
       // Remove budget error if budget is now valid
       const newErrors = {...errors};
       delete newErrors.budget;
       setErrors(newErrors);
     }
-  }, [minimumBudget, locations, keywords, equipment]);
+  }, [minimumBudget, budget]);
 
   // Success message
   if (success) {
@@ -596,7 +595,21 @@ const BudgetCalculator = () => {
               Please check your inbox.
             </p>
             <button
-              onClick={() => setSuccess(false)}
+              onClick={() => {
+                setSuccess(false);
+                setBudget(0);
+                setKeywords([]);
+                setEquipment([]);
+                setDaysInOslo(0);
+                setDaysOutOfOslo(0);
+                setLocations(0);
+                setTitle('');
+                setCompanyName('');
+                setEmail('');
+                setCurrency('NOK');
+                setErrors({});
+                setTouchedFields({});
+              }}
               className="px-6 py-3 bg-[#47403a] text-white rounded-xl hover:bg-[#35302b] transition-colors"
             >
               Create Another Estimate
@@ -770,13 +783,9 @@ const BudgetCalculator = () => {
                         <input
                           type="text"
                           value={budget === 0 ? '' : formatNumber(budget)}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, '');
-                            setBudget(value === '' ? 0 : Number(value));
-                          }}
+                          onChange={handleBudgetInputChange}
                           className={`w-full p-4 bg-[#fbfaf8] border-0 rounded-xl text-[#2d2a26] text-left placeholder-[#a39b92] ${errors.budget ? 'ring-2 ring-red-400' : ''}`}
                           placeholder="Add details to calculate"
-                          readOnly={totalDays > 0} // Make it read-only when days are added
                         />
                         <div className="absolute inset-y-0 right-0 flex">
                           <select
@@ -793,14 +802,14 @@ const BudgetCalculator = () => {
                       </div>
                       
                       {/* Budget slider - only visible when budget > 0 with orange-blue gradient */}
-                      {budget > 0 && (
+                      {budget > 0 && minimumBudget > 0 && (
                         <div className="mt-4 px-1">
                           <input
                             type="range"
                             min={minimumBudget}
                             max={maximumBudget}
                             value={budget}
-                            onChange={(e) => setBudget(Number(e.target.value))}
+                            onChange={handleBudgetSliderChange}
                             className="w-full h-2 rounded-lg appearance-none cursor-pointer"
                             style={{ 
                               background: `linear-gradient(to right, 
