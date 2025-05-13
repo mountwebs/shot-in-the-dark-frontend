@@ -60,7 +60,8 @@ const BudgetCalculator = () => {
     { id: 'full-crew', label: 'Crew' },
     { id: 'tech-equipment', label: 'Technical Equipment' },
     { id: 'local-talent', label: 'Local Talent' },
-    { id: 'permits', label: 'Permits' }
+    { id: 'permits', label: 'Permits' },
+    { id: 'remote-shoot', label: 'Remote Shoot' }
   ];
 
   const equipmentOptions = ['Drone', 'Road block', 'Lowloader'];
@@ -104,7 +105,7 @@ const BudgetCalculator = () => {
     }
     
     if (keywords.includes('car')) {
-      recommendationMultiplier += 0.25; // Increased from 0.20
+      recommendationMultiplier += 0.30; // Increased from 0.25 for car productions
     }
     
     // Special multiplier if BOTH car AND film are selected (premium production)
@@ -125,6 +126,11 @@ const BudgetCalculator = () => {
     // Technical equipment premium
     if (keywords.includes('tech-equipment')) {
       recommendationMultiplier += 0.15;
+    }
+    
+    // Remote shoot premium
+    if (keywords.includes('remote-shoot')) {
+      recommendationMultiplier += 0.20; // Premium for remote shooting logistics
     }
     
     // Special equipment premium (for selected items)
@@ -184,7 +190,7 @@ const BudgetCalculator = () => {
     if (keywords.includes('film')) {
       dailyRate = 120000;
     } else if (keywords.includes('car')) {
-      dailyRate = 100000;
+      dailyRate = 120000; // Increased from 100000 to make car shoots more expensive
     } else if (keywords.includes('commercial') || keywords.includes('fashion')) {
       dailyRate = 80000;
     }
@@ -212,6 +218,8 @@ const BudgetCalculator = () => {
     // Service requirements
     if (keywords.includes('local-talent')) minBudget += 50000;
     if (keywords.includes('permits')) minBudget += 10000;
+    // Add cost for remote shoots
+    if (keywords.includes('remote-shoot')) minBudget += 75000;
 
     // Full crew adjustments - lower cost for stills, documentary, and music video
     if (keywords.includes('full-crew')) {
@@ -239,6 +247,11 @@ const BudgetCalculator = () => {
       } else {
         minBudget += 25000; // Standard rate
       }
+    }
+
+    // Car shoots need an additional budget for specialized equipment and logistics
+    if (keywords.includes('car')) {
+      minBudget += 45000; // Additional cost for car shoot logistics and specialized equipment
     }
 
     // Add special equipment
@@ -270,24 +283,28 @@ const BudgetCalculator = () => {
     }
   };
 
-  // Calculate maximum budget (dynamic based on inputs)
+  // Calculate maximum budget using a smooth exponential function
   const calculateMaximumBudget = () => {
-    // Calculate max in NOK first
     const min = minimumBudget;
-    let maxValue;
     
     // If minimum is 0, use a default max of 100,000
     if (min === 0) {
-      maxValue = 100000;
-    } else {
-      // Set max to be a multiple of the minimum, with different scaling based on size
-      if (min < 200000) maxValue = min * 5; // 5x for smaller budgets
-      else if (min < 500000) maxValue = min * 4; // 4x for medium budgets
-      else if (min < 1000000) maxValue = min * 3; // 3x for larger budgets
-      else maxValue = min * 2; // 2x for very large budgets
+      return 100000;
     }
     
-    return Math.round(maxValue);
+    // Use an exponential decay function for the multiplier
+    // This creates a smooth, continuous curve that starts high and gradually decreases
+    const baseMultiplier = 5;  // Maximum multiplier for small budgets
+    const minMultiplier = 2;   // Minimum multiplier for large budgets
+    const decayFactor = 1000000; // Controls how quickly the multiplier decreases
+    
+    // Calculate multiplier using exponential decay
+    // This formula gradually transitions from baseMultiplier to minMultiplier
+    // as the minimum budget increases
+    const multiplier = minMultiplier + (baseMultiplier - minMultiplier) * 
+                      Math.exp(-min / decayFactor);
+    
+    return Math.round(min * multiplier);
   };
 
   // Handle smooth step transition
@@ -630,7 +647,7 @@ const BudgetCalculator = () => {
   }
 
   return (
-    <div className="budget-calculator bg-[#f8f7f5] min-h-screen min-w-[320px] flex flex-col pb-20">
+    <div className="budget-calculator bg-[#f8f7f5] min-h-screen min-w-[320px] flex flex-col pb-28">
       {/* CSS for slide transitions and subtle slider */}
       <style jsx>{`
         .slide-container {
@@ -674,6 +691,13 @@ const BudgetCalculator = () => {
         input[type=range]:focus {
           outline: none;
         }
+
+        /* Ensure bottom padding for fixed navigation */
+        @media (max-width: 640px) {
+          .budget-calculator {
+            padding-bottom: 80px;
+          }
+        }
       `}</style>
       
       {/* Logo and Label at the top with more space - improved for mobile */}
@@ -686,7 +710,7 @@ const BudgetCalculator = () => {
       </div>
       
       {/* Main content area with vertical centering */}
-      <div className="relative flex flex-col flex-grow" style={{ marginTop: '70px' }}>
+      <div className="relative flex flex-col flex-grow" style={{ marginTop: '40px' }}>
         <div className="max-w-6xl w-full mx-auto px-6">
           <div className={`slide-container ${slideDirection ? `slide-${slideDirection}` : ''}`}>
             {/* STEP 1 – INTRO SLIDE */}
@@ -824,6 +848,11 @@ const BudgetCalculator = () => {
                           <div className="flex justify-between text-xs text-[#6f655c] mt-2">
                             <span>{formatNumber(minimumBudget)} {currencySettings[currency].symbol}</span>
                             <span>{formatNumber(maximumBudget)} {currencySettings[currency].symbol}</span>
+                          </div>
+                          
+                          {/* New explanation text - shorter and more concise */}
+                          <div className="mt-2 text-xs text-[#6f655c] italic">
+                            <p>Costs vary based on crew size, talent, and specific needs. Position your budget where appropriate for your project.</p>
                           </div>
                         </div>
                       )}
@@ -1072,8 +1101,8 @@ const BudgetCalculator = () => {
 
       {/* Fixed navigation at the bottom with logo - with improved mobile spacing */}
       {!success && (
-        <div className="fixed bottom-6 sm:bottom-8 left-0 right-0 flex flex-col items-center justify-center px-4">
-          <div className="nav-pills flex w-full max-w-xs h-12 bg-white rounded-full shadow-sm relative border border-[#eeebe7] mb-4 sm:mb-6">
+        <div className="fixed bottom-6 sm:bottom-8 left-0 right-0 flex flex-col items-center justify-center px-4 z-10">
+          <div className="nav-pills flex w-full max-w-xs h-12 bg-white rounded-full shadow-md relative border border-[#eeebe7] mb-4 sm:mb-6">
             {/* Background pill that shows on active side */}
             <div 
               className="nav-pill-indicator absolute top-1 bottom-1 bg-[#47403a] rounded-full transition-all duration-200 ease-in-out"
