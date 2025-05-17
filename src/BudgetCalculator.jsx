@@ -57,7 +57,7 @@ const BudgetCalculator = () => {
 
   const serviceRequirements = [
     { id: 'fixer', label: 'Fixer' },
-    { id: 'full-crew', label: 'Crew' },
+    { id: 'full-crew', label: 'Full Crew' },
     { id: 'tech-equipment', label: 'Technical Equipment' },
     { id: 'local-talent', label: 'Local Talent' },
     { id: 'permits', label: 'Permits' },
@@ -289,7 +289,9 @@ const BudgetCalculator = () => {
     
     // If minimum is 0, use a default max of 100,000
     if (min === 0) {
-      return 100000;
+      return currency === 'NOK' ? 100000 : 
+             currency === 'USD' ? 9000 : 
+             7000; // GBP
     }
     
     // Use an exponential decay function for the multiplier
@@ -473,23 +475,25 @@ const BudgetCalculator = () => {
     }
   };
 
-  // FIXED: Handle budget input change
+  // Handle budget input change
   const handleBudgetInputChange = (e) => {
     const value = e.target.value.replace(/\D/g, '');
     const newBudget = value === '' ? 0 : Number(value);
     setBudget(newBudget);
   };
 
-  // FIXED: Handle slider change
+  // Handle slider change
   const handleBudgetSliderChange = (e) => {
     const newBudget = Number(e.target.value);
     setBudget(newBudget);
   };
 
-  // FIXED: Handle currency change with proper calculation order
+  // Handle currency change with proper calculation order
   const handleCurrencyChange = (e) => {
     const newCurrency = e.target.value;
     const oldCurrency = currency;
+    
+    console.log(`Currency change: ${oldCurrency} to ${newCurrency}`);
     
     // If budget is already set, convert it
     if (budget > 0) {
@@ -501,10 +505,27 @@ const BudgetCalculator = () => {
       
       // Then calculate and set new budget value
       const newBudget = Math.round(budgetInNOK * (newCurrency === 'NOK' ? 1 : currencySettings[newCurrency].rate));
+      console.log(`Converting budget: ${budget} ${oldCurrency} → ${newBudget} ${newCurrency}`);
+      
       setBudget(newBudget);
     } else {
       // Just update currency if no budget is set yet
       setCurrency(newCurrency);
+    }
+  };
+
+  // Format currency display based on selected currency
+  const formatCurrencyDisplay = (value, currencyCode) => {
+    if (!value) return '';
+    
+    // Format with spaces as thousands separators
+    const formattedNumber = formatNumber(value);
+    
+    // Add appropriate currency symbol
+    if (currencyCode === 'GBP') {
+      return `${formattedNumber} £`;
+    } else {
+      return `${formattedNumber} ${currencyCode}`;
     }
   };
 
@@ -516,20 +537,27 @@ const BudgetCalculator = () => {
 
     setIsSubmitting(true);
 
+    // Make sure budget is a number, not a string
+    const numericBudget = Number(budget);
+
+    // Prepare form data with correct types
     const formData = {
       title,
       companyName,
       email,
-      budget,
+      budget: numericBudget, // Ensure this is a number
       daysInOslo,
       daysOutOfOslo,
       locations,
       keywords,
       equipment,
-      currency,
+      currency, // Make sure currency is included explicitly
     };
 
-    console.log(JSON.stringify(formData));
+    console.log("Submitting form data:", formData);
+    console.log("Currency being sent:", currency);
+    console.log("Budget amount:", numericBudget);
+    console.log("JSON payload:", JSON.stringify(formData));
 
     try {
       const response = await fetch('https://stiangk.dev/api/shot-in-the-dark', {
@@ -540,7 +568,10 @@ const BudgetCalculator = () => {
         body: JSON.stringify(formData),
       });
 
+      console.log("Response status:", response.status);
+      
       if (!response.ok) {
+        console.error("Server error:", await response.text());
         throw new Error('Failed to submit form');
       }
 
@@ -816,7 +847,6 @@ const BudgetCalculator = () => {
                             value={currency}
                             onChange={handleCurrencyChange}
                             className="h-full bg-[#fbfaf8] border-0 border-l border-[#eeebe7] rounded-r-xl appearance-none px-3 text-[#6f655c]"
-                            disabled={budget === 0}
                           >
                             <option value="NOK">NOK</option>
                             <option value="USD">USD</option>
@@ -846,8 +876,8 @@ const BudgetCalculator = () => {
                           
                           {/* Only show min and max values */}
                           <div className="flex justify-between text-xs text-[#6f655c] mt-2">
-                            <span>{formatNumber(minimumBudget)} {currencySettings[currency].symbol}</span>
-                            <span>{formatNumber(maximumBudget)} {currencySettings[currency].symbol}</span>
+                            <span>{formatCurrencyDisplay(minimumBudget, currency)}</span>
+                            <span>{formatCurrencyDisplay(maximumBudget, currency)}</span>
                           </div>
                           
                           {/* New explanation text - shorter and more concise */}
@@ -1038,7 +1068,7 @@ const BudgetCalculator = () => {
                         <div className="text-[#6f655c]">Budget</div>
                         <div className="text-[#2d2a26] font-medium">
                           {budget > 0 
-                            ? `${formatNumber(budget)} ${currencySettings[currency].symbol}`
+                            ? formatCurrencyDisplay(budget, currency)
                             : '—'}
                         </div>
 
