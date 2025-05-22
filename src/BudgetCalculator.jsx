@@ -30,7 +30,8 @@ const BudgetCalculator = () => {
   const [title, setTitle] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
-  const [budget, setBudget] = useState(0); // Start with 0 budget
+  const [budget, setBudget] = useState(0); // Start with 0 budget - display currency value
+  const [budgetNOK, setBudgetNOK] = useState(0); // Internal NOK value for calculations
   const [daysInOslo, setDaysInOslo] = useState(0); // Start with 0 days
   const [daysOutOfOslo, setDaysOutOfOslo] = useState(0);
   const [locations, setLocations] = useState(0); // Start with 0 locations
@@ -428,6 +429,13 @@ const BudgetCalculator = () => {
       setTimeout(() => {
         const newRecommendedBudget = calculateRecommendedBudget();
         setBudget(newRecommendedBudget);
+        
+        // Set NOK value too
+        if (currency === 'NOK') {
+          setBudgetNOK(newRecommendedBudget);
+        } else {
+          setBudgetNOK(Math.round(newRecommendedBudget / currencySettings[currency].rate));
+        }
       }, 0);
     }
   };
@@ -448,6 +456,13 @@ const BudgetCalculator = () => {
       setTimeout(() => {
         const newRecommendedBudget = calculateRecommendedBudget();
         setBudget(newRecommendedBudget);
+        
+        // Set NOK value too
+        if (currency === 'NOK') {
+          setBudgetNOK(newRecommendedBudget);
+        } else {
+          setBudgetNOK(Math.round(newRecommendedBudget / currencySettings[currency].rate));
+        }
       }, 0);
     }
   };
@@ -471,6 +486,13 @@ const BudgetCalculator = () => {
       setTimeout(() => {
         const newRecommendedBudget = calculateRecommendedBudget();
         setBudget(newRecommendedBudget);
+        
+        // Set NOK value too
+        if (currency === 'NOK') {
+          setBudgetNOK(newRecommendedBudget);
+        } else {
+          setBudgetNOK(Math.round(newRecommendedBudget / currencySettings[currency].rate));
+        }
       }, 0);
     }
   };
@@ -480,12 +502,28 @@ const BudgetCalculator = () => {
     const value = e.target.value.replace(/\D/g, '');
     const newBudget = value === '' ? 0 : Number(value);
     setBudget(newBudget);
+    
+    // Update NOK value whenever budget changes directly
+    if (currency === 'NOK') {
+      setBudgetNOK(newBudget);
+    } else {
+      // Convert to NOK for internal storage
+      setBudgetNOK(Math.round(newBudget / currencySettings[currency].rate));
+    }
   };
 
   // Handle slider change
   const handleBudgetSliderChange = (e) => {
     const newBudget = Number(e.target.value);
     setBudget(newBudget);
+    
+    // Update NOK value
+    if (currency === 'NOK') {
+      setBudgetNOK(newBudget);
+    } else {
+      // Convert to NOK for internal storage
+      setBudgetNOK(Math.round(newBudget / currencySettings[currency].rate));
+    }
   };
 
   // Handle currency change with proper calculation order
@@ -497,15 +535,28 @@ const BudgetCalculator = () => {
     
     // If budget is already set, convert it
     if (budget > 0) {
-      // Convert budget to NOK first (if not already)
-      const budgetInNOK = oldCurrency === 'NOK' ? budget : budget / currencySettings[oldCurrency].rate;
+      // Calculate or use NOK value
+      let nokValue = budgetNOK;
+      
+      // If NOK value not set yet, calculate it now
+      if (nokValue === 0 && oldCurrency !== 'NOK') {
+        nokValue = Math.round(budget / currencySettings[oldCurrency].rate);
+        setBudgetNOK(nokValue);
+      } else if (oldCurrency === 'NOK' && nokValue === 0) {
+        nokValue = budget;
+        setBudgetNOK(nokValue);
+      }
       
       // Update currency first
       setCurrency(newCurrency);
       
-      // Then calculate and set new budget value
-      const newBudget = Math.round(budgetInNOK * (newCurrency === 'NOK' ? 1 : currencySettings[newCurrency].rate));
+      // Then calculate new display budget from NOK
+      const newBudget = newCurrency === 'NOK' 
+        ? nokValue 
+        : Math.round(nokValue * currencySettings[newCurrency].rate);
+      
       console.log(`Converting budget: ${budget} ${oldCurrency} → ${newBudget} ${newCurrency}`);
+      console.log(`Internal NOK value: ${nokValue}`);
       
       setBudget(newBudget);
     } else {
@@ -537,26 +588,34 @@ const BudgetCalculator = () => {
 
     setIsSubmitting(true);
 
-    // Make sure budget is a number, not a string
-    const numericBudget = Number(budget);
+    // Determine the budget to send (in NOK)
+    let budgetToSend;
+    if (currency === 'NOK') {
+      budgetToSend = budget;
+    } else {
+      // If we have a stored NOK value, use it
+      budgetToSend = budgetNOK > 0 
+        ? budgetNOK 
+        : Math.round(budget / currencySettings[currency].rate);
+    }
 
-    // Prepare form data with correct types
+    // Prepare form data with NOK budget
     const formData = {
       title,
       companyName,
       email,
-      budget: numericBudget, // Ensure this is a number
+      budget: budgetToSend, // Send NOK value for calculation
       daysInOslo,
       daysOutOfOslo,
       locations,
       keywords,
       equipment,
-      currency, // Make sure currency is included explicitly
+      currency, // Still include display currency for PDF/Excel
     };
 
     console.log("Submitting form data:", formData);
-    console.log("Currency being sent:", currency);
-    console.log("Budget amount:", numericBudget);
+    console.log("Budget in NOK:", budgetToSend);
+    console.log("Display currency:", currency);
     console.log("JSON payload:", JSON.stringify(formData));
 
     try {
@@ -602,6 +661,13 @@ const BudgetCalculator = () => {
     if (totalDays > 0 && budget === 0) {
       const newRecommendedBudget = calculateRecommendedBudget();
       setBudget(newRecommendedBudget);
+      
+      // Also set NOK value when automatically setting budget
+      if (currency === 'NOK') {
+        setBudgetNOK(newRecommendedBudget);
+      } else {
+        setBudgetNOK(Math.round(newRecommendedBudget / currencySettings[currency].rate));
+      }
     }
   }, [daysInOslo, daysOutOfOslo]);
 
@@ -646,6 +712,7 @@ const BudgetCalculator = () => {
               onClick={() => {
                 setSuccess(false);
                 setBudget(0);
+                setBudgetNOK(0); // Reset NOK value too
                 setKeywords([]);
                 setEquipment([]);
                 setDaysInOslo(0);
