@@ -609,13 +609,17 @@ const BudgetCalculator = () => {
       daysOutOfOslo,
       locations,
       keywords,
-      equipment,
+      equipment: equipment.map(item => ({
+        type: item.type,
+        days: item.days
+      })), // Ensure equipment has the correct structure
       currency, // Still include display currency for PDF/Excel
     };
 
     console.log("Submitting form data:", formData);
     console.log("Budget in NOK:", budgetToSend);
     console.log("Display currency:", currency);
+    console.log("Equipment array:", formData.equipment);
     console.log("JSON payload:", JSON.stringify(formData));
 
     try {
