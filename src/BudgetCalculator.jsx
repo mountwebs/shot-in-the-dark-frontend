@@ -46,13 +46,13 @@ const BudgetCalculator = () => {
 
   // Constants and options
   const productionTypes = [
+    { id: 'film', label: 'Film' },
     { id: 'stills', label: 'Stills' },
+    { id: 'documentary', label: 'Documentary' },
+    { id: 'commercial', label: 'Commercial' },
     { id: 'car', label: 'Car' },
     { id: 'fashion', label: 'Fashion' },
-    { id: 'commercial', label: 'Commercial' },
-    { id: 'film', label: 'Film' },
     { id: 'plates', label: 'Plates' },
-    { id: 'documentary', label: 'Documentary' },
     { id: 'music', label: 'Music Video' }
   ];
 
