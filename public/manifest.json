@@ -1,4 +1,5 @@
 {
+  "id": "line-calc-budget-norway",
   "name": "Line.Calc - Production Budget Calculator",
   "short_name": "Line.Calc",
   "description": "Instant budget calculator for film, commercial and photo productions in Norway",
@@ -34,7 +35,16 @@
       "type": "image/png"
     }
   ],
-  "categories": ["business", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Create Budget",
+      "short_name": "Budget",
+      "description": "Create a new budget calculation",
+      "url": "/?action=create",
+      "icons": [{ "src": "/Logo 192.png", "sizes": "192x192" }]
+    }
+  ],
+  "categories": ["budgeting", "filmproduction", "norway", "business", "productivity"],
   "lang": "en",
   "dir": "ltr",
   "prefer_related_applications": false
