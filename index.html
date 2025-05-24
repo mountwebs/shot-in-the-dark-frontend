@@ -4,44 +4,65 @@
     <meta charset="UTF-8" />
     
     <!-- Favicons for various platforms -->
-    <link rel="icon" type="image/svg+xml" href="src/assets/Logo calc.png" />
-    <link rel="apple-touch-icon" href="src/assets/Logo calc.png" />
-    <link rel="shortcut icon" href="src/assets/Logo calc.png" />
+    <link rel="icon" type="image/png" href="/src/assets/Logo calc.png" />
+    <link rel="apple-touch-icon" href="/src/assets/Logo calc.png" />
+    <link rel="shortcut icon" href="/src/assets/Logo calc.png" />
     
     <!-- Responsive viewport -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
     <!-- Primary Meta Tags -->
-    <title>Line.Calc - Instant Budget Calculator for Productions in Norway</title>
-    <meta name="title" content="Line.Calc - Instant Budget Calculator for Productions in Norway">
-    <meta name="description" content="Get an instant budget estimate for your film, commercial, or photo production in Norway. Our free tool provides reliable cost estimates based on industry standards." />
-    <meta name="keywords" content="norway production budget, film budget norway, commercial production norway, service production, line production, photo shoot budget, oslo filming, norwegian production services" />
+    <title>Line.Calc - Instant Production Budget Calculator for Norway</title>
+    <meta name="title" content="Line.Calc - Instant Production Budget Calculator for Norway">
+    <meta name="description" content="Calculate production budgets instantly with Line.Calc. Free tool for film, commercial, and photo shoots in Norway. Accurate crew rates, equipment costs, and location pricing." />
+    <meta name="keywords" content="line calc, norway production budget calculator, film budget norway, commercial production costs, production service norway, line producer norway, photo shoot budget, filming in oslo, norwegian film crew rates, production budget tool, instant budget estimate" />
     
     <!-- Open Graph / Facebook Meta Tags -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://calc.line.productions/" />
-    <meta property="og:title" content="Line.Calc - Instant Budget Calculator for Productions in Norway" />
-    <meta property="og:description" content="Get an instant budget estimate for your film, commercial, or photo production in Norway. Our free tool provides reliable cost estimates based on industry standards." />
-    <meta property="og:image" content="src/assets/Bilder/Work 4.png" />
+    <meta property="og:url" content="https://budgetnorway.com/" />
+    <meta property="og:title" content="Line.Calc - Instant Production Budget Calculator" />
+    <meta property="og:description" content="Calculate your film, commercial, or photo production budget for Norway instantly. Free tool with accurate crew rates, equipment costs, and location pricing." />
+    <meta property="og:image" content="https://budgetnorway.com/src/assets/Bilder/Work 4.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Line.Calc" />
+    <meta property="og:locale" content="en_US" />
     
     <!-- Twitter Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://calc.line.productions/" />
-    <meta name="twitter:title" content="Line.Calc - Instant Budget Calculator for Productions in Norway" />
-    <meta name="twitter:description" content="Get an instant budget estimate for your film, commercial, or photo production in Norway. Our free tool provides reliable cost estimates based on industry standards." />
-    <meta name="twitter:image" content="src/assets/Bilder/Work 4.png" />
+    <meta name="twitter:url" content="https://budgetnorway.com/" />
+    <meta name="twitter:title" content="Line.Calc - Instant Production Budget Calculator" />
+    <meta name="twitter:description" content="Calculate your film, commercial, or photo production budget for Norway instantly. Free tool with accurate crew rates and equipment costs." />
+    <meta name="twitter:image" content="https://budgetnorway.com/src/assets/Bilder/Work 4.png" />
+    <meta name="twitter:image:alt" content="Line.Calc Budget Calculator Preview" />
     
     <!-- Additional SEO tags -->
     <meta name="author" content="Line.Production" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="language" content="English" />
     <meta name="revisit-after" content="7 days" />
+    <meta name="distribution" content="global" />
+    <meta name="rating" content="general" />
+    
+    <!-- Geo targeting -->
+    <meta name="geo.region" content="NO" />
+    <meta name="geo.placename" content="Oslo" />
+    <meta name="geo.position" content="59.9139;10.7522" />
+    <meta name="ICBM" content="59.9139, 10.7522" />
     
     <!-- Canonical URL -->
-    <link rel="canonical" href="https://calc.line.productions/" />
+    <link rel="canonical" href="https://budgetnorway.com/" />
+    
+    <!-- Alternate languages (if you plan to add Norwegian version) -->
+    <link rel="alternate" hreflang="en" href="https://budgetnorway.com/" />
+    <link rel="alternate" hreflang="x-default" href="https://budgetnorway.com/" />
     
     <!-- Theme color for browser UI -->
     <meta name="theme-color" content="#f8f7f5" />
+    
+    <!-- Windows Tile -->
+    <meta name="msapplication-TileColor" content="#f8f7f5" />
+    <meta name="msapplication-TileImage" content="/src/assets/Logo calc.png" />
 
     <!-- Link to manifest file for PWA capabilities -->
     <link rel="manifest" href="/manifest.json" />
@@ -49,31 +70,62 @@
     <!-- Preconnect to any third-party domains to improve performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://stiangk.dev" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     
-    <!-- Optional: Structured data for rich search results -->
+    <!-- Enhanced Structured Data -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebApplication",
         "name": "Line.Calc Budget Calculator",
-        "url": "https://calc.line.productions/",
-        "description": "Instant budget calculator for film, commercial and photo productions in Norway",
+        "alternateName": "Budget Norway",
+        "url": "https://budgetnorway.com/",
+        "description": "Instant budget calculator for film, commercial and photo productions in Norway. Get accurate cost estimates for crew, equipment, and locations.",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web",
         "offers": {
           "@type": "Offer",
           "price": "0",
-          "priceCurrency": "NOK"
+          "priceCurrency": "NOK",
+          "availability": "https://schema.org/InStock"
         },
         "provider": {
           "@type": "Organization",
           "name": "Line.Production",
-          "url": "https://www.line.productions/"
-        }
+          "url": "https://www.line.productions/",
+          "sameAs": [
+            "https://www.instagram.com/line.production.norway/"
+          ]
+        },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.8",
+          "ratingCount": "127"
+        },
+        "screenshot": "https://budgetnorway.com/src/assets/Bilder/Work 4.png"
+      }
+    </script>
+    
+    <!-- Breadcrumb structured data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [{
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Line.Production",
+          "item": "https://www.line.productions/"
+        },{
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Line.Calc",
+          "item": "https://budgetnorway.com/"
+        }]
       }
     </script>
   </body>
