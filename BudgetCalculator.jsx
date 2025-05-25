@@ -30,11 +30,11 @@ const BudgetCalculator = () => {
   const [title, setTitle] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
-  const [budget, setBudget] = useState(0); // Start with 0 budget - display currency value
+  const [budget, setBudget] = useState(0); // Display currency value
   const [budgetNOK, setBudgetNOK] = useState(0); // Internal NOK value for calculations
-  const [daysInOslo, setDaysInOslo] = useState(0); // Start with 0 days
+  const [daysInOslo, setDaysInOslo] = useState(0);
   const [daysOutOfOslo, setDaysOutOfOslo] = useState(0);
-  const [locations, setLocations] = useState(0); // Start with 0 locations
+  const [locations, setLocations] = useState(0);
   const [keywords, setKeywords] = useState([]);
   const [equipment, setEquipment] = useState([]);
   const [currency, setCurrency] = useState('NOK');
@@ -67,60 +67,99 @@ const BudgetCalculator = () => {
 
   const equipmentOptions = ['Drone', 'Road block', 'Lowloader'];
 
+  // Exchange rates - keep in sync with backend
   const currencySettings = {
     NOK: {
       symbol: 'NOK',
       rate: 1,
-      min: 0, // Changed to 0 to allow starting from zero
+      min: 0,
       max: 2500000,
       step: 10000
     },
+    EUR: {
+      symbol: '€',
+      rate: 0.085, // 1 NOK = 0.085 EUR, or 1 EUR = 11.76 NOK
+      min: 0,
+      max: 212500,  // 2,500,000 NOK * 0.085
+      step: 850
+    },
     USD: {
       symbol: 'USD',
-      rate: 0.09,
-      min: 0, // Changed to 0
+      rate: 0.09, // 1 NOK = 0.09 USD, or 1 USD = 11.11 NOK
+      min: 0,
       max: 225000,
       step: 900
     },
     GBP: {
       symbol: '£',
-      rate: 0.07,
-      min: 0, // Changed to 0
+      rate: 0.07, // 1 NOK = 0.07 GBP, or 1 GBP = 14.29 NOK
+      min: 0,
       max: 175000,
       step: 700
+    },
+    CNY: {
+      symbol: '¥',
+      rate: 0.65, // 1 NOK = 0.65 CNY, or 1 CNY = 1.54 NOK
+      min: 0,
+      max: 1625000, // 2,500,000 NOK * 0.65
+      step: 6500
     }
   };
 
+  // Load user data from localStorage on component mount
+  useEffect(() => {
+    const savedUserData = localStorage.getItem('userData');
+    if (savedUserData) {
+      const { savedEmail, savedCompanyName, savedTitle } = JSON.parse(savedUserData);
+      if (savedEmail) setEmail(savedEmail);
+      if (savedCompanyName) setCompanyName(savedCompanyName);
+      if (savedTitle) setTitle(savedTitle);
+    }
+  }, []);
+
+  // Save user data to localStorage when they change
+  useEffect(() => {
+    if (email || companyName || title) {
+      localStorage.setItem('userData', JSON.stringify({
+        savedEmail: email,
+        savedCompanyName: companyName,
+        savedTitle: title
+      }));
+    }
+  }, [email, companyName, title]);
+
   // Calculate recommended budget with specialized adjustments
   const calculateRecommendedBudget = () => {
-    const min = calculateMinimumBudget();
-    // Return 0 if minimum is 0
-    if (min === 0) return 0;
+    // Get minimum budget in NOK
+    const minNOK = calculateMinimumBudgetNOK();
     
-    // Start with base recommended (60% above minimum - increased from 55%)
+    // Return 0 if minimum is 0
+    if (minNOK === 0) return 0;
+    
+    // Start with base recommended (60% above minimum)
     let recommendationMultiplier = 1.6;
     
     // Production type multipliers with cumulative effects
     if (keywords.includes('film')) {
-      recommendationMultiplier += 0.25; // Increased from 0.20
+      recommendationMultiplier += 0.25;
     }
     
     if (keywords.includes('car')) {
-      recommendationMultiplier += 0.30; // Increased from 0.25 for car productions
+      recommendationMultiplier += 0.30;
     }
     
-    // Special multiplier if BOTH car AND film are selected (premium production)
+    // Special multiplier if BOTH car AND film are selected
     if (keywords.includes('car') && keywords.includes('film')) {
-      recommendationMultiplier += 0.15; // Additional premium for combined high-end production
+      recommendationMultiplier += 0.15;
     }
     
     // Full crew adjustments based on location
     if (keywords.includes('full-crew')) {
-      recommendationMultiplier += 0.25; // Base adjustment for full crew
+      recommendationMultiplier += 0.25;
       
       // Additional premium for full crew outside Oslo
       if (daysOutOfOslo > 0) {
-        recommendationMultiplier += 0.15; // Extra costs for crew travel/accommodations
+        recommendationMultiplier += 0.15;
       }
     }
     
@@ -131,13 +170,12 @@ const BudgetCalculator = () => {
     
     // Remote shoot premium
     if (keywords.includes('remote-shoot')) {
-      recommendationMultiplier += 0.20; // Premium for remote shooting logistics
+      recommendationMultiplier += 0.20;
     }
     
-    // Special equipment premium (for selected items)
+    // Special equipment premium
     const specialEquipmentCount = equipment.length;
     if (specialEquipmentCount > 0) {
-      // Add 10% for each piece of special equipment
       recommendationMultiplier += 0.1 * specialEquipmentCount;
     }
     
@@ -151,12 +189,19 @@ const BudgetCalculator = () => {
       recommendationMultiplier += 0.15 * (totalDays - 1);
     }
     
-    return Math.round(min * recommendationMultiplier);
+    // Calculate recommended budget in NOK
+    const recommendedNOK = Math.round(minNOK * recommendationMultiplier);
+    
+    // Convert to display currency if needed
+    if (currency === 'NOK') {
+      return recommendedNOK;
+    } else {
+      return Math.round(recommendedNOK * currencySettings[currency].rate);
+    }
   };
 
   // Mark field as touched
   const markFieldAsTouched = (field) => {
-    // Only track touched fields after first submission attempt
     if (touchedFields.submit) {
       setTouchedFields(prev => ({ ...prev, [field]: true }));
     }
@@ -164,19 +209,32 @@ const BudgetCalculator = () => {
 
   // Format number with spaces
   const formatNumber = (num) => {
+    if (!num && num !== 0) return '';
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   };
 
-  // Convert amount between currencies - always using NOK as base
-  const convertAmount = (amount, from, to) => {
-    // Convert to NOK first if not already
-    const inNOK = from === 'NOK' ? amount : amount / currencySettings[from].rate;
-    // Then convert to target currency
-    return to === 'NOK' ? inNOK : inNOK * currencySettings[to].rate;
-  };
+  // Format currency for display
+  const formatCurrencyDisplay = (value, currencyCode) => {
+    if (!value && value !== 0) return '';
+    
+    // Format with spaces as thousands separators
+    const formattedNumber = formatNumber(value);
+    
+      // Add appropriate currency symbol based on currency code
+  switch (currencyCode) {
+    case 'EUR':
+      return `${formattedNumber} €`;
+    case 'GBP':
+      return `${formattedNumber} £`;
+    case 'CNY':
+      return `${formattedNumber} ¥`;
+    default:
+      return `${formattedNumber} ${currencyCode}`;
+  }
+};
 
-  // Calculate minimum budget in NOK and then convert to current currency
-  const calculateMinimumBudget = () => {
+  // Calculate minimum budget in NOK
+  const calculateMinimumBudgetNOK = () => {
     const totalDays = daysInOslo + daysOutOfOslo;
     
     // If no days are selected, return 0 budget
@@ -191,7 +249,7 @@ const BudgetCalculator = () => {
     if (keywords.includes('film')) {
       dailyRate = 120000;
     } else if (keywords.includes('car')) {
-      dailyRate = 120000; // Increased from 100000 to make car shoots more expensive
+      dailyRate = 120000;
     } else if (keywords.includes('commercial') || keywords.includes('fashion')) {
       dailyRate = 80000;
     }
@@ -206,8 +264,7 @@ const BudgetCalculator = () => {
     // Add costs for additional days (with 10% reduction for each day)
     if (totalDays > 1) {
       for (let day = 2; day <= totalDays; day++) {
-        // Apply a 10% reduction for each additional day
-        const dayRate = dailyRate * 0.9; // 10% reduction
+        const dayRate = dailyRate * 0.9;
         minBudget += dayRate;
       }
     }
@@ -219,20 +276,17 @@ const BudgetCalculator = () => {
     // Service requirements
     if (keywords.includes('local-talent')) minBudget += 50000;
     if (keywords.includes('permits')) minBudget += 10000;
-    // Add cost for remote shoots
     if (keywords.includes('remote-shoot')) minBudget += 75000;
 
-    // Full crew adjustments - lower cost for stills, documentary, and music video
+    // Full crew adjustments
     if (keywords.includes('full-crew')) {
       if (keywords.includes('stills') || keywords.includes('documentary') || keywords.includes('music')) {
-        // Reduced rates for stills, documentary, and music video productions
         if (daysOutOfOslo > 0) {
-          minBudget = Math.max(minBudget, 160000); // Lower rate for outside Oslo
+          minBudget = Math.max(minBudget, 160000);
         } else {
-          minBudget = Math.max(minBudget, 120000); // Lower rate for in Oslo
+          minBudget = Math.max(minBudget, 120000);
         }
       } else {
-        // Standard rates for other production types
         if (daysOutOfOslo > 0) {
           minBudget = Math.max(minBudget, 300000);
         } else {
@@ -241,18 +295,18 @@ const BudgetCalculator = () => {
       }
     }
 
-    // Technical equipment adjustment - reduced for stills, documentary, and music video
+    // Technical equipment adjustment
     if (keywords.includes('tech-equipment')) {
       if (keywords.includes('stills') || keywords.includes('documentary') || keywords.includes('music')) {
-        minBudget += 10000; // Further reduced rate
+        minBudget += 10000;
       } else {
-        minBudget += 25000; // Standard rate
+        minBudget += 25000;
       }
     }
 
-    // Car shoots need an additional budget for specialized equipment and logistics
+    // Car shoots
     if (keywords.includes('car')) {
-      minBudget += 45000; // Additional cost for car shoot logistics and specialized equipment
+      minBudget += 45000;
     }
 
     // Add special equipment
@@ -262,21 +316,23 @@ const BudgetCalculator = () => {
       minBudget += cost * item.days;
     });
     
-    // Apply discounts for documentary and music video
-    // Documentary gets 20% off
+    // Apply discounts
     if (keywords.includes('documentary')) {
-      minBudget = minBudget * 0.8; // 20% reduction
-    }
-    
-    // Music video gets 10% off
-    else if (keywords.includes('music')) {
-      minBudget = minBudget * 0.9; // 10% reduction
+      minBudget = minBudget * 0.8;
+    } else if (keywords.includes('music')) {
+      minBudget = minBudget * 0.9;
     }
 
-    // Calculate in NOK first
-    const minBudgetNOK = Math.round(minBudget);
+    // Return the minimum budget in NOK
+    return Math.round(minBudget);
+  };
+
+  // Calculate minimum budget in display currency
+  const calculateMinimumBudget = () => {
+    // Get minimum budget in NOK
+    const minBudgetNOK = calculateMinimumBudgetNOK();
     
-    // Then convert to the selected currency
+    // Convert to display currency if needed
     if (currency === 'NOK') {
       return minBudgetNOK;
     } else {
@@ -284,11 +340,11 @@ const BudgetCalculator = () => {
     }
   };
 
-  // Calculate maximum budget using a smooth exponential function
+  // Calculate maximum budget
   const calculateMaximumBudget = () => {
     const min = minimumBudget;
     
-    // If minimum is 0, use a default max of 100,000
+    // If minimum is 0, use a default max value in the current currency
     if (min === 0) {
       return currency === 'NOK' ? 100000 : 
              currency === 'USD' ? 9000 : 
@@ -296,14 +352,11 @@ const BudgetCalculator = () => {
     }
     
     // Use an exponential decay function for the multiplier
-    // This creates a smooth, continuous curve that starts high and gradually decreases
-    const baseMultiplier = 5;  // Maximum multiplier for small budgets
-    const minMultiplier = 2;   // Minimum multiplier for large budgets
-    const decayFactor = 1000000; // Controls how quickly the multiplier decreases
+    const baseMultiplier = 5;
+    const minMultiplier = 2;
+    const decayFactor = 1000000;
     
     // Calculate multiplier using exponential decay
-    // This formula gradually transitions from baseMultiplier to minMultiplier
-    // as the minimum budget increases
     const multiplier = minMultiplier + (baseMultiplier - minMultiplier) * 
                       Math.exp(-min / decayFactor);
     
@@ -323,12 +376,10 @@ const BudgetCalculator = () => {
 
   // Validate form in real time
   const validateFields = () => {
-    // Only validate if submit has been clicked
     if (!touchedFields.submit) return true;
     
     const newErrors = {};
     
-    // Only show errors for fields that have been touched or if the form was submitted
     if (!title) {
       newErrors.title = true;
     }
@@ -337,17 +388,14 @@ const BudgetCalculator = () => {
       newErrors.email = true;
     }
     
-    // For days, require at least one day total (either in Oslo or out of Oslo)
     if (totalDays < 1) {
       newErrors.days = true;
     }
     
-    // For locations, validate based on shooting days
     if (locations < 1 || (daysInOslo > 0 && daysOutOfOslo > 0 && locations < 2)) {
       newErrors.locations = true;
     }
     
-    // For budget, show error if it's been interacted with
     if (budget < minimumBudget && minimumBudget > 0) {
       newErrors.budget = true;
     }
@@ -358,7 +406,6 @@ const BudgetCalculator = () => {
 
   // Validate the entire form for submission
   const validateForm = () => {
-    // Mark all fields as touched for error display
     setTouchedFields({
       title: true,
       email: true,
@@ -373,17 +420,14 @@ const BudgetCalculator = () => {
     if (!title) newErrors.title = true;
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) newErrors.email = true;
     
-    // Require at least one day of shooting
     if (totalDays < 1) {
       newErrors.days = true;
     }
     
-    // Require at least one location
     if (locations < 1 || (daysInOslo > 0 && daysOutOfOslo > 0 && locations < 2)) {
       newErrors.locations = true;
     }
     
-    // Make sure budget is at least the minimum calculated amount
     if (budget < minimumBudget && minimumBudget > 0) {
       newErrors.budget = true;
     }
@@ -405,12 +449,11 @@ const BudgetCalculator = () => {
   const toggleKeyword = (keywordId) => {
     let newKeywords = [...keywords];
     
-    // If clicking full-crew, remove fixer if it exists
+    // Handle fixer and full-crew mutual exclusivity
     if (keywordId === 'full-crew' && !keywords.includes(keywordId) && keywords.includes('fixer')) {
       newKeywords = newKeywords.filter(id => id !== 'fixer');
     }
     
-    // If clicking fixer, remove full-crew if it exists
     if (keywordId === 'fixer' && !keywords.includes(keywordId) && keywords.includes('full-crew')) {
       newKeywords = newKeywords.filter(id => id !== 'full-crew');
     }
@@ -424,13 +467,13 @@ const BudgetCalculator = () => {
     
     setKeywords(newKeywords);
     
-    // For all other scenarios where user hasn't set a budget, use the recommended
+    // Update budget recommendation if needed
     if (totalDays > 0 && budget === 0) {
       setTimeout(() => {
         const newRecommendedBudget = calculateRecommendedBudget();
         setBudget(newRecommendedBudget);
         
-        // Set NOK value too
+        // Set NOK value
         if (currency === 'NOK') {
           setBudgetNOK(newRecommendedBudget);
         } else {
@@ -451,13 +494,13 @@ const BudgetCalculator = () => {
     
     setEquipment(newEquipment);
     
-    // Only update budget if it hasn't been set by the user
+    // Update budget recommendation if needed
     if (totalDays > 0 && budget === 0) {
       setTimeout(() => {
         const newRecommendedBudget = calculateRecommendedBudget();
         setBudget(newRecommendedBudget);
         
-        // Set NOK value too
+        // Set NOK value
         if (currency === 'NOK') {
           setBudgetNOK(newRecommendedBudget);
         } else {
@@ -481,13 +524,13 @@ const BudgetCalculator = () => {
     
     setEquipment(newEquipment);
     
-    // Only update budget if it hasn't been set by the user
+    // Update budget recommendation if needed
     if (totalDays > 0 && budget === 0) {
       setTimeout(() => {
         const newRecommendedBudget = calculateRecommendedBudget();
         setBudget(newRecommendedBudget);
         
-        // Set NOK value too
+        // Set NOK value
         if (currency === 'NOK') {
           setBudgetNOK(newRecommendedBudget);
         } else {
@@ -497,17 +540,19 @@ const BudgetCalculator = () => {
     }
   };
 
-  // Handle budget input change
+  // Handle budget input change - cleaner implementation
   const handleBudgetInputChange = (e) => {
     const value = e.target.value.replace(/\D/g, '');
     const newBudget = value === '' ? 0 : Number(value);
+    
+    // Update display budget
     setBudget(newBudget);
     
-    // Update NOK value whenever budget changes directly
+    // Update NOK value
     if (currency === 'NOK') {
       setBudgetNOK(newBudget);
     } else {
-      // Convert to NOK for internal storage
+      // Convert to NOK
       setBudgetNOK(Math.round(newBudget / currencySettings[currency].rate));
     }
   };
@@ -515,68 +560,48 @@ const BudgetCalculator = () => {
   // Handle slider change
   const handleBudgetSliderChange = (e) => {
     const newBudget = Number(e.target.value);
+    
+    // Update display budget
     setBudget(newBudget);
     
     // Update NOK value
     if (currency === 'NOK') {
       setBudgetNOK(newBudget);
     } else {
-      // Convert to NOK for internal storage
+      // Convert to NOK
       setBudgetNOK(Math.round(newBudget / currencySettings[currency].rate));
     }
   };
 
-  // Handle currency change with proper calculation order
+  // Handle currency change - improved implementation
   const handleCurrencyChange = (e) => {
     const newCurrency = e.target.value;
     const oldCurrency = currency;
     
-    console.log(`Currency change: ${oldCurrency} to ${newCurrency}`);
+    // Skip if same currency
+    if (newCurrency === oldCurrency) return;
     
-    // If budget is already set, convert it
+    // First update the currency
+    setCurrency(newCurrency);
+    
+    // Then update the display budget based on NOK value
     if (budget > 0) {
-      // Calculate or use NOK value
-      let nokValue = budgetNOK;
+      // Ensure we have a valid NOK value
+      const nokValue = budgetNOK > 0 ? 
+        budgetNOK : 
+        (oldCurrency === 'NOK' ? budget : Math.round(budget / currencySettings[oldCurrency].rate));
       
-      // If NOK value not set yet, calculate it now
-      if (nokValue === 0 && oldCurrency !== 'NOK') {
-        nokValue = Math.round(budget / currencySettings[oldCurrency].rate);
-        setBudgetNOK(nokValue);
-      } else if (oldCurrency === 'NOK' && nokValue === 0) {
-        nokValue = budget;
+      // Store NOK value if not already set
+      if (budgetNOK === 0) {
         setBudgetNOK(nokValue);
       }
       
-      // Update currency first
-      setCurrency(newCurrency);
+      // Convert NOK to new currency
+      const newBudgetValue = newCurrency === 'NOK' ? 
+        nokValue : 
+        Math.round(nokValue * currencySettings[newCurrency].rate);
       
-      // Then calculate new display budget from NOK
-      const newBudget = newCurrency === 'NOK' 
-        ? nokValue 
-        : Math.round(nokValue * currencySettings[newCurrency].rate);
-      
-      console.log(`Converting budget: ${budget} ${oldCurrency} → ${newBudget} ${newCurrency}`);
-      console.log(`Internal NOK value: ${nokValue}`);
-      
-      setBudget(newBudget);
-    } else {
-      // Just update currency if no budget is set yet
-      setCurrency(newCurrency);
-    }
-  };
-
-  // Format currency display based on selected currency
-  const formatCurrencyDisplay = (value, currencyCode) => {
-    if (!value) return '';
-    
-    // Format with spaces as thousands separators
-    const formattedNumber = formatNumber(value);
-    
-    // Add appropriate currency symbol
-    if (currencyCode === 'GBP') {
-      return `${formattedNumber} £`;
-    } else {
-      return `${formattedNumber} ${currencyCode}`;
+      setBudget(newBudgetValue);
     }
   };
 
@@ -588,23 +613,12 @@ const BudgetCalculator = () => {
 
     setIsSubmitting(true);
 
-    // Determine the budget to send (in NOK)
-    let budgetToSend;
-    if (currency === 'NOK') {
-      budgetToSend = budget;
-    } else {
-      // If we have a stored NOK value, use it
-      budgetToSend = budgetNOK > 0 
-        ? budgetNOK 
-        : Math.round(budget / currencySettings[currency].rate);
-    }
-
-    // Prepare form data with NOK budget
+    // Always send the NOK budget value to the backend
     const formData = {
       title,
       companyName,
       email,
-      budget: budgetToSend, // Send NOK value for calculation
+      budget: budgetNOK, // Send NOK value for calculation
       daysInOslo,
       daysOutOfOslo,
       locations,
@@ -612,15 +626,9 @@ const BudgetCalculator = () => {
       equipment: equipment.map(item => ({
         type: item.type,
         days: item.days
-      })), // Ensure equipment has the correct structure
-      currency, // Still include display currency for PDF/Excel
+      })),
+      currency, // Include display currency for PDF/Excel output
     };
-
-    console.log("Submitting form data:", formData);
-    console.log("Budget in NOK:", budgetToSend);
-    console.log("Display currency:", currency);
-    console.log("Equipment array:", formData.equipment);
-    console.log("JSON payload:", JSON.stringify(formData));
 
     try {
       const response = await fetch('https://stiangk.dev/api/shot-in-the-dark', {
@@ -630,8 +638,6 @@ const BudgetCalculator = () => {
         },
         body: JSON.stringify(formData),
       });
-
-      console.log("Response status:", response.status);
       
       if (!response.ok) {
         console.error("Server error:", await response.text());
@@ -656,7 +662,6 @@ const BudgetCalculator = () => {
 
   // Effect to update locations when both in/out of Oslo selected
   useEffect(() => {
-    // Only automatically set locations to 2 if both in Oslo and out of Oslo days are selected
     if (daysInOslo > 0 && daysOutOfOslo > 0 && locations < 2) {
       setLocations(2);
     }
@@ -666,7 +671,7 @@ const BudgetCalculator = () => {
       const newRecommendedBudget = calculateRecommendedBudget();
       setBudget(newRecommendedBudget);
       
-      // Also set NOK value when automatically setting budget
+      // Set NOK value
       if (currency === 'NOK') {
         setBudgetNOK(newRecommendedBudget);
       } else {
@@ -675,13 +680,11 @@ const BudgetCalculator = () => {
     }
   }, [daysInOslo, daysOutOfOslo]);
 
-  // Effect to update budget when minimum changes
+  // Effect to update budget validation when minimum changes
   useEffect(() => {
-    // Force minimum budget validation check
     if (touchedFields.submit && budget < minimumBudget && minimumBudget > 0) {
       setErrors(prev => ({...prev, budget: true}));
     } else if (touchedFields.submit && errors.budget && budget >= minimumBudget) {
-      // Remove budget error if budget is now valid
       const newErrors = {...errors};
       delete newErrors.budget;
       setErrors(newErrors);
@@ -692,7 +695,7 @@ const BudgetCalculator = () => {
   if (success) {
     return (
       <div className="budget-calculator bg-[#f8f7f5] min-h-screen min-w-[320px] flex flex-col">
-        {/* Logo at the top - same as main page */}
+        {/* Logo at the top */}
         <div className="pt-3 sm:pt-6 pb-2 sm:pb-4">
           <div className="flex justify-center">
             <div className="h-14 sm:h-16 w-14 sm:w-16 flex items-center justify-center">
@@ -701,7 +704,7 @@ const BudgetCalculator = () => {
           </div>
         </div>
         
-        {/* Success content - perfectly centered */}
+        {/* Success content */}
         <div className="flex-grow flex items-center justify-center px-6" style={{ marginTop: '-70px' }}>
           <div className="text-center py-16 bg-white rounded-2xl shadow-sm max-w-md w-full mx-auto">
             <div className="w-16 h-16 bg-[#f1f0ee] text-[#47403a] rounded-full flex items-center justify-center mx-auto mb-4">
@@ -716,16 +719,13 @@ const BudgetCalculator = () => {
               onClick={() => {
                 setSuccess(false);
                 setBudget(0);
-                setBudgetNOK(0); // Reset NOK value too
+                setBudgetNOK(0);
                 setKeywords([]);
                 setEquipment([]);
                 setDaysInOslo(0);
                 setDaysOutOfOslo(0);
                 setLocations(0);
-                setTitle('');
-                setCompanyName('');
-                setEmail('');
-                setCurrency('NOK');
+                // We keep title, companyName and email as requested
                 setErrors({});
                 setTouchedFields({});
               }}
@@ -736,7 +736,7 @@ const BudgetCalculator = () => {
           </div>
         </div>
         
-        {/* Logo at the bottom - same as main page */}
+        {/* Logo at the bottom */}
         <div className="fixed bottom-6 sm:bottom-8 left-0 right-0 flex justify-center">
           <div className="w-12 sm:w-16 mb-2 sm:mb-4">
             <a href="https://www.line.productions/" target="_blank" rel="noopener noreferrer">
@@ -802,7 +802,7 @@ const BudgetCalculator = () => {
         }
       `}</style>
       
-      {/* Logo and Label at the top with more space - improved for mobile */}
+      {/* Logo and Label at the top */}
       <div className="pt-3 sm:pt-6 pb-2 sm:pb-4">
         <div className="flex justify-center">
           <div className="h-14 sm:h-16 w-14 sm:w-16 flex items-center justify-center">
@@ -811,7 +811,7 @@ const BudgetCalculator = () => {
         </div>
       </div>
       
-      {/* Main content area with vertical centering */}
+      {/* Main content area */}
       <div className="relative flex flex-col flex-grow" style={{ marginTop: '40px' }}>
         <div className="max-w-6xl w-full mx-auto px-6">
           <div className={`slide-container ${slideDirection ? `slide-${slideDirection}` : ''}`}>
@@ -850,7 +850,7 @@ const BudgetCalculator = () => {
                     </div>
                   </div>
 
-                  {/* RIGHT IMAGE - Random image from Bilder folder */}
+                  {/* RIGHT IMAGE */}
                   <div className="lg:w-[45%] rounded-2xl overflow-hidden shadow-md">
                     {randomImage ? (
                       <img
@@ -871,7 +871,7 @@ const BudgetCalculator = () => {
             {/* STEP 2 - CALCULATOR */}
             {step === 2 && (
               <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 px-1">
-                {/* Left side - Basic info - Vertically centered */}
+                {/* Left side - Basic info */}
                 <div className="w-full lg:w-5/12 space-y-4 flex flex-col justify-center">
                   <div className="bg-white p-6 rounded-2xl shadow-sm">
                     <input
@@ -919,14 +919,16 @@ const BudgetCalculator = () => {
                             onChange={handleCurrencyChange}
                             className="h-full bg-[#fbfaf8] border-0 border-l border-[#eeebe7] rounded-r-xl appearance-none px-3 text-[#6f655c]"
                           >
-                            <option value="NOK">NOK</option>
-                            <option value="USD">USD</option>
-                            <option value="GBP">GBP</option>
+                              <option value="NOK">NOK</option>
+                              <option value="EUR">EUR</option>
+                              <option value="USD">USD</option>
+                              <option value="GBP">GBP</option>
+                              <option value="CNY">CNY</option>
                           </select>
                         </div>
                       </div>
                       
-                      {/* Budget slider - only visible when budget > 0 with orange-blue gradient */}
+                      {/* Budget slider */}
                       {budget > 0 && minimumBudget > 0 && (
                         <div className="mt-4 px-1">
                           <input
@@ -945,13 +947,13 @@ const BudgetCalculator = () => {
                             }}
                           />
                           
-                          {/* Only show min and max values */}
+                          {/* Min and max values */}
                           <div className="flex justify-between text-xs text-[#6f655c] mt-2">
                             <span>{formatCurrencyDisplay(minimumBudget, currency)}</span>
                             <span>{formatCurrencyDisplay(maximumBudget, currency)}</span>
                           </div>
                           
-                          {/* New explanation text - shorter and more concise */}
+                          {/* Explanation text */}
                           <div className="mt-2 text-xs text-[#6f655c] italic">
                             <p>Costs vary based on crew size, talent, and specific needs. Position your budget where appropriate for your project.</p>
                           </div>
@@ -1011,7 +1013,7 @@ const BudgetCalculator = () => {
                 {/* Right side - Production details */}
                 <div className="w-full lg:w-7/12 bg-white rounded-2xl shadow-sm p-8 space-y-6">
                   <form onSubmit={handleSubmit} className="space-y-8">
-                    {/* Shooting days and locations row - improved for mobile */}
+                    {/* Shooting days and locations row */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <label className="block text-sm text-[#6f655c] mb-1">Shooting in Oslo</label>
@@ -1065,7 +1067,7 @@ const BudgetCalculator = () => {
                       </div>
                     </div>
 
-                    {/* Special equipment section - disabled until days are added */}
+                    {/* Special equipment section */}
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <label className="block text-sm font-medium text-[#6f655c]">Special Equipment</label>
@@ -1126,7 +1128,7 @@ const BudgetCalculator = () => {
                       </div>
                     </div>
 
-                    {/* Condensed Summary - displays "—" when values are 0 */}
+                    {/* Project Summary */}
                     <div className="bg-[#fbfaf8] px-5 py-4 rounded-xl mb-4 shadow-sm border border-[#eeebe7]">
                       <h3 className="text-base font-semibold text-center text-[#2d2a26] mb-3">Project Summary</h3>
 
@@ -1200,7 +1202,7 @@ const BudgetCalculator = () => {
         </div>
       </div>
 
-      {/* Fixed navigation at the bottom with logo - with improved mobile spacing */}
+      {/* Fixed navigation at the bottom with logo */}
       {!success && (
         <div className="fixed bottom-6 sm:bottom-8 left-0 right-0 flex flex-col items-center justify-center px-4 z-10">
           <div className="nav-pills flex w-full max-w-xs h-12 bg-white rounded-full shadow-md relative border border-[#eeebe7] mb-4 sm:mb-6">
@@ -1233,7 +1235,7 @@ const BudgetCalculator = () => {
             </button>
           </div>
           
-          {/* Logo at the bottom - fully opaque */}
+          {/* Logo at the bottom */}
           <div className="w-12 sm:w-16 mb-2 sm:mb-4">
             <a href="https://www.line.productions/" target="_blank" rel="noopener noreferrer">
               <img src={Logo} alt="Line.Production Logo" className="w-full" />
