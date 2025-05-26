@@ -11,7 +11,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<BudgetCalculator />} />
-        <Route path="/docs" element={<ProtectedDocs />} />
+        <Route path="/flow" element={<ProtectedDocs />} />
       </Routes>
     </BrowserRouter>
   )

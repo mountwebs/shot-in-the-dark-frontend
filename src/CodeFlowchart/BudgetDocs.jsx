@@ -41,7 +41,7 @@ const BudgetDocs = () => {
       <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-sm p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Line.calc - flowchart </h1>
+            <h1 className="text-2xl font-bold">Flowchart for Line.Calc </h1>
             {docData?.lastUpdated && (
               <p className="text-sm text-[#6f655c]">
                 Last updated: {new Date(docData.lastUpdated).toLocaleString()}

@@ -10,7 +10,7 @@ const ProtectedDocs = () => {
   // Simple password check
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (password === 'Line.Production') {
+    if (password === 'Tangen') {
       setIsAuthenticated(true);
       sessionStorage.setItem('docsAuthenticated', 'true');
     } else {

@@ -220,18 +220,18 @@ const BudgetCalculator = () => {
     // Format with spaces as thousands separators
     const formattedNumber = formatNumber(value);
     
-      // Add appropriate currency symbol based on currency code
-  switch (currencyCode) {
-    case 'EUR':
-      return `${formattedNumber} €`;
-    case 'GBP':
-      return `${formattedNumber} £`;
-    case 'CNY':
-      return `${formattedNumber} ¥`;
-    default:
-      return `${formattedNumber} ${currencyCode}`;
-  }
-};
+    // Add appropriate currency symbol based on currency code
+    switch (currencyCode) {
+      case 'EUR':
+        return `${formattedNumber} €`;
+      case 'GBP':
+        return `${formattedNumber} £`;
+      case 'CNY':
+        return `${formattedNumber} ¥`;
+      default:
+        return `${formattedNumber} ${currencyCode}`;
+    }
+  };
 
   // Calculate minimum budget in NOK
   const calculateMinimumBudgetNOK = () => {
@@ -749,8 +749,7 @@ const BudgetCalculator = () => {
   }
 
   return (
-    <div className="budget-calculator bg-[#f8f7f5] min-h-screen min-w-[320px] flex flex-col pb-28">
-      {/* CSS for slide transitions and subtle slider */}
+    <div className="budget-calculator bg-[#f8f7f5] min-h-screen min-w-[320px] flex flex-col pb-32">
       <style jsx>{`
         .slide-container {
           transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
@@ -793,16 +792,9 @@ const BudgetCalculator = () => {
         input[type=range]:focus {
           outline: none;
         }
-
-        /* Ensure bottom padding for fixed navigation */
-        @media (max-width: 640px) {
-          .budget-calculator {
-            padding-bottom: 80px;
-          }
-        }
       `}</style>
       
-      {/* Logo and Label at the top */}
+      {/* Logo at the top */}
       <div className="pt-3 sm:pt-6 pb-2 sm:pb-4">
         <div className="flex justify-center">
           <div className="h-14 sm:h-16 w-14 sm:w-16 flex items-center justify-center">
@@ -812,7 +804,7 @@ const BudgetCalculator = () => {
       </div>
       
       {/* Main content area */}
-      <div className="relative flex flex-col flex-grow" style={{ marginTop: '40px' }}>
+      <div className="relative flex flex-col flex-grow">
         <div className="max-w-6xl w-full mx-auto px-6">
           <div className={`slide-container ${slideDirection ? `slide-${slideDirection}` : ''}`}>
             {/* STEP 1 – INTRO SLIDE */}
@@ -820,38 +812,37 @@ const BudgetCalculator = () => {
               <div className="flex flex-col">
                 {/* INTRO SECTION */}
                 <div className="flex flex-col lg:flex-row items-center gap-12">
-                  {/* LEFT TEXT */}
-                  <div className="lg:w-1/2 text-left max-w-[650px]">
+                  {/* LEFT TEXT - Center on mobile */}
+                  <div className="w-full lg:w-1/2 text-center sm:text-left max-w-[650px] mx-auto">
                     <p className="text-sm font-medium text-[#6f655c] uppercase mb-3">
                       A free budgeting service for service productions
                     </p>
-                    <h2 className="text-4xl font-bold text-[#2d2a26] leading-tight mb-6">
+                    <h2 className="text-3xl sm:text-4xl font-bold text-[#2d2a26] leading-tight mb-6">
                       How to get your budget
                     </h2>
-                    <p className="text-[#2d2a26] text-lg leading-relaxed mb-8">
+                    <p className="text-[#2d2a26] text-base sm:text-lg leading-relaxed mb-8">
                       Enter your production details, and Line.Calc will instantly generate a reliable
                       budget estimate based on industry-standard costs and our expertise. The draft will be
-                      sent directly to your email — and ours — for further review. This tool gives you a clear
-                      starting point to understand the possibilities of filming in Norway with Line.Production.
+                      sent directly to your email — and ours — for further review.
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-[#2d2a26] mb-12">
-                      <div className="flex items-center">
-                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center mr-4 border border-[#eeebe7] flex-shrink-0 shadow-sm">
-                          <span className="text-xl">📩</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-[#2d2a26] mb-8">
+                      <div className="flex items-center justify-center sm:justify-start">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white flex items-center justify-center mr-3 sm:mr-4 border border-[#eeebe7] flex-shrink-0 shadow-sm">
+                          <span className="text-lg sm:text-xl">📩</span>
                         </div>
-                        <h3 className="text-xl font-semibold text-[#2d2a26]">Get the budget to your inbox.</h3>
+                        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26]">Get the budget to your inbox.</h3>
                       </div>
-                      <div className="flex items-center">
-                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center mr-4 border border-[#eeebe7] flex-shrink-0 shadow-sm">
-                          <span className="text-xl">🌍</span>
+                      <div className="flex items-center justify-center sm:justify-start">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white flex items-center justify-center mr-3 sm:mr-4 border border-[#eeebe7] flex-shrink-0 shadow-sm">
+                          <span className="text-lg sm:text-xl">🌍</span>
                         </div>
-                        <h3 className="text-xl font-semibold text-[#2d2a26]">Focus on the why and where.</h3>
+                        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26]">Focus on the why and where.</h3>
                       </div>
                     </div>
                   </div>
 
-                  {/* RIGHT IMAGE */}
-                  <div className="lg:w-[45%] rounded-2xl overflow-hidden shadow-md">
+                  {/* RIGHT IMAGE - Show on all devices */}
+                  <div className="lg:w-[45%] w-full rounded-2xl overflow-hidden shadow-md mt-2 sm:mt-0">
                     {randomImage ? (
                       <img
                         src={randomImage}
@@ -919,11 +910,11 @@ const BudgetCalculator = () => {
                             onChange={handleCurrencyChange}
                             className="h-full bg-[#fbfaf8] border-0 border-l border-[#eeebe7] rounded-r-xl appearance-none px-3 text-[#6f655c]"
                           >
-                              <option value="NOK">NOK</option>
-                              <option value="EUR">EUR</option>
-                              <option value="USD">USD</option>
-                              <option value="GBP">GBP</option>
-                              <option value="CNY">CNY</option>
+                            <option value="NOK">NOK</option>
+                            <option value="EUR">EUR</option>
+                            <option value="USD">USD</option>
+                            <option value="GBP">GBP</option>
+                            <option value="CNY">CNY</option>
                           </select>
                         </div>
                       </div>
@@ -1013,56 +1004,123 @@ const BudgetCalculator = () => {
                 {/* Right side - Production details */}
                 <div className="w-full lg:w-7/12 bg-white rounded-2xl shadow-sm p-8 space-y-6">
                   <form onSubmit={handleSubmit} className="space-y-8">
-                    {/* Shooting days and locations row */}
+                    {/* Shooting days and locations row - with spread out pluss/minus buttons */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {/* OSLO DAYS */}
                       <div className="space-y-2">
                         <label className="block text-sm text-[#6f655c] mb-1">Shooting in Oslo</label>
-                        <div className={`bg-[#fbfaf8] p-4 rounded-xl h-16 flex items-center justify-center ${errors.days ? 'ring-2 ring-red-400' : ''}`}>
-                          <input
-                            type="number"
-                            value={daysInOslo}
-                            onChange={(e) => {
-                              setDaysInOslo(Math.max(0, Number(e.target.value)));
-                            }}
-                            min="0"
-                            className="w-20 text-center bg-transparent border-0 text-[#2d2a26] text-xl font-medium"
-                            placeholder="0"
-                          />
-                          <span className="text-sm text-[#6f655c] ml-1">day{daysInOslo !== 1 ? 's' : ''}</span>
+                        <div className={`bg-[#fbfaf8] p-3 rounded-xl h-16 flex items-center justify-between ${errors.days ? 'ring-2 ring-red-400' : ''}`}>
+                          {/* Left minus button */}
+                          <button
+                            type="button"
+                            className="sm:hidden w-8 h-8 flex items-center justify-center bg-[#f1f0ee] hover:bg-[#e9e6e2] rounded-full text-[#6f655c] ml-2"
+                            onClick={() => setDaysInOslo(Math.max(0, daysInOslo - 1))}
+                          >
+                            -
+                          </button>
+                          
+                          {/* Center content with input and label */}
+                          <div className="flex items-center">
+                            <input
+                              type="number"
+                              value={daysInOslo}
+                              onChange={(e) => {
+                                setDaysInOslo(Math.max(0, Number(e.target.value)));
+                              }}
+                              min="0"
+                              className="w-12 sm:w-16 text-center bg-transparent border-0 text-[#2d2a26] text-xl font-medium"
+                              placeholder="0"
+                            />
+                            <span className="text-sm text-[#6f655c]">day{daysInOslo !== 1 ? 's' : ''}</span>
+                          </div>
+                          
+                          {/* Right plus button */}
+                          <button
+                            type="button"
+                            className="sm:hidden w-8 h-8 flex items-center justify-center bg-[#f1f0ee] hover:bg-[#e9e6e2] rounded-full text-[#6f655c] mr-2"
+                            onClick={() => setDaysInOslo(daysInOslo + 1)}
+                          >
+                            +
+                          </button>
                         </div>
                       </div>
 
+                      {/* OUTSIDE OSLO DAYS */}
                       <div className="space-y-2">
                         <label className="block text-sm text-[#6f655c] mb-1">Shooting out of Oslo</label>
-                        <div className={`bg-[#fbfaf8] p-4 rounded-xl h-16 flex items-center justify-center ${errors.days ? 'ring-2 ring-red-400' : ''}`}>
-                          <input
-                            type="number"
-                            value={daysOutOfOslo}
-                            onChange={(e) => {
-                              setDaysOutOfOslo(Math.max(0, Number(e.target.value)));
-                            }}
-                            min="0"
-                            className="w-20 text-center bg-transparent border-0 text-[#2d2a26] text-xl font-medium"
-                            placeholder="0"
-                          />
-                          <span className="text-sm text-[#6f655c] ml-1">day{daysOutOfOslo !== 1 ? 's' : ''}</span>
+                        <div className={`bg-[#fbfaf8] p-3 rounded-xl h-16 flex items-center justify-between ${errors.days ? 'ring-2 ring-red-400' : ''}`}>
+                          {/* Left minus button */}
+                          <button
+                            type="button"
+                            className="sm:hidden w-8 h-8 flex items-center justify-center bg-[#f1f0ee] hover:bg-[#e9e6e2] rounded-full text-[#6f655c] ml-2"
+                            onClick={() => setDaysOutOfOslo(Math.max(0, daysOutOfOslo - 1))}
+                          >
+                            -
+                          </button>
+                          
+                          {/* Center content with input and label */}
+                          <div className="flex items-center">
+                            <input
+                              type="number"
+                              value={daysOutOfOslo}
+                              onChange={(e) => {
+                                setDaysOutOfOslo(Math.max(0, Number(e.target.value)));
+                              }}
+                              min="0"
+                              className="w-12 sm:w-16 text-center bg-transparent border-0 text-[#2d2a26] text-xl font-medium"
+                              placeholder="0"
+                            />
+                            <span className="text-sm text-[#6f655c]">day{daysOutOfOslo !== 1 ? 's' : ''}</span>
+                          </div>
+                          
+                          {/* Right plus button */}
+                          <button
+                            type="button"
+                            className="sm:hidden w-8 h-8 flex items-center justify-center bg-[#f1f0ee] hover:bg-[#e9e6e2] rounded-full text-[#6f655c] mr-2"
+                            onClick={() => setDaysOutOfOslo(daysOutOfOslo + 1)}
+                          >
+                            +
+                          </button>
                         </div>
                       </div>
 
+                      {/* LOCATIONS */}
                       <div className="space-y-2">
                         <label className="block text-sm text-[#6f655c] mb-1">Number of locations</label>
-                        <div className={`bg-[#fbfaf8] p-4 rounded-xl h-16 flex items-center justify-center ${errors.locations ? 'ring-2 ring-red-400' : ''}`}>
-                          <input
-                            type="number"
-                            value={locations}
-                            onChange={(e) => {
-                              setLocations(Math.max(0, Number(e.target.value)));
-                            }}
-                            min={daysInOslo > 0 && daysOutOfOslo > 0 ? 2 : 0}
-                            className="w-20 text-center bg-transparent border-0 text-[#2d2a26] text-xl font-medium"
-                            placeholder="0"
-                          />
-                          <span className="text-sm text-[#6f655c] ml-1">location{locations !== 1 ? 's' : ''}</span>
+                        <div className={`bg-[#fbfaf8] p-3 rounded-xl h-16 flex items-center justify-between ${errors.locations ? 'ring-2 ring-red-400' : ''}`}>
+                          {/* Left minus button */}
+                          <button
+                            type="button"
+                            className="sm:hidden w-8 h-8 flex items-center justify-center bg-[#f1f0ee] hover:bg-[#e9e6e2] rounded-full text-[#6f655c] ml-2"
+                            onClick={() => setLocations(Math.max(daysInOslo > 0 && daysOutOfOslo > 0 ? 2 : 0, locations - 1))}
+                            disabled={daysInOslo > 0 && daysOutOfOslo > 0 && locations <= 2}
+                          >
+                            -
+                          </button>
+                          
+                          {/* Center content with input and label */}
+                          <div className="flex items-center">
+                            <input
+                              type="number"
+                              value={locations}
+                              onChange={(e) => {
+                                setLocations(Math.max(daysInOslo > 0 && daysOutOfOslo > 0 ? 2 : 0, Number(e.target.value)));
+                              }}
+                              min={daysInOslo > 0 && daysOutOfOslo > 0 ? 2 : 0}
+                              className="w-12 sm:w-16 text-center bg-transparent border-0 text-[#2d2a26] text-xl font-medium"
+                              placeholder="0"
+                            />
+                            <span className="text-sm text-[#6f655c]">location{locations !== 1 ? 's' : ''}</span>
+                          </div>
+                          
+                          {/* Right plus button */}
+                          <button
+                            type="button"
+                            className="sm:hidden w-8 h-8 flex items-center justify-center bg-[#f1f0ee] hover:bg-[#e9e6e2] rounded-full text-[#6f655c] mr-2"
+                            onClick={() => setLocations(locations + 1)}
+                          >
+                            +
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -1204,8 +1262,8 @@ const BudgetCalculator = () => {
 
       {/* Fixed navigation at the bottom with logo */}
       {!success && (
-        <div className="fixed bottom-6 sm:bottom-8 left-0 right-0 flex flex-col items-center justify-center px-4 z-10">
-          <div className="nav-pills flex w-full max-w-xs h-12 bg-white rounded-full shadow-md relative border border-[#eeebe7] mb-4 sm:mb-6">
+        <div className="fixed bottom-4 sm:bottom-6 left-0 right-0 flex flex-col items-center justify-center px-4 z-10">
+          <div className="nav-pills flex w-full max-w-xs h-12 bg-white rounded-full shadow-md relative border border-[#eeebe7] mb-4">
             {/* Background pill that shows on active side */}
             <div 
               className="nav-pill-indicator absolute top-1 bottom-1 bg-[#47403a] rounded-full transition-all duration-200 ease-in-out"
@@ -1235,8 +1293,8 @@ const BudgetCalculator = () => {
             </button>
           </div>
           
-          {/* Logo at the bottom */}
-          <div className="w-12 sm:w-16 mb-2 sm:mb-4">
+          {/* Logo below navigation */}
+          <div className="w-10 sm:w-14">
             <a href="https://www.line.productions/" target="_blank" rel="noopener noreferrer">
               <img src={Logo} alt="Line.Production Logo" className="w-full" />
             </a>
