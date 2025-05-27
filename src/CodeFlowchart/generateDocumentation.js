@@ -1,16 +1,33 @@
 // src/CodeFlowchart/generateDocumentation.js
 // Utility to generate documentation data from code execution
 
-// Storage for documentation data
+import { fetchFlowchartData } from './api';
+
 let documentationData = {
-    lastUpdated: null,
-    flowPaths: [], // Will store execution paths
-    functionCalls: {}, // Will store function calls with args
-    productionTypes: {}, // Information about each production type
-    crewSelections: {}, // Track crew selection decisions
-    vehicleSelections: {}, // Track vehicle selection decisions
-    budgetBreakdown: {} // Track where budget is allocated
-  };
+  lastUpdated: null,
+  flowPaths: [],
+  functionCalls: {},
+  productionTypes: {},
+  crewSelections: {},
+  vehicleSelections: {},
+  budgetBreakdown: {}
+};
+
+// Function to load data from the backend
+export const loadDocumentationFromBackend = async () => {
+  const backendData = await fetchFlowchartData();
+  if (backendData) {
+    documentationData = backendData;
+    // Also save to localStorage for offline use
+    try {
+      localStorage.setItem('budgetDocumentation', JSON.stringify(documentationData));
+    } catch (e) {
+      console.warn('Could not save to localStorage:', e);
+    }
+    return true;
+  }
+  return false;
+};
   
   // Reset documentation data at the start of a new calculation
   export const resetDocumentation = () => {
