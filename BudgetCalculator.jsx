@@ -10,6 +10,9 @@ import Work3 from './assets/Bilder/Work 3.png';
 import Work4 from './assets/Bilder/Work 4.png';
 import Work5 from './assets/Bilder/Work 5.png';
 
+// Import currency utilities
+import { toNOK, fromNOK, formatCurrency, EXCHANGE_RATES } from './currency-utils';
+
 // Create an array of all images
 const images = [Work1, Work2, Work3, Work4, Work5];
 
@@ -67,39 +70,39 @@ const BudgetCalculator = () => {
 
   const equipmentOptions = ['Drone', 'Road block', 'Lowloader'];
 
-  // Exchange rates - keep in sync with backend
+  // Updated currencySettings - keeping the original structure but using EXCHANGE_RATES for conversion
   const currencySettings = {
     NOK: {
       symbol: 'NOK',
-      rate: 1,
+      rate: EXCHANGE_RATES.NOK,
       min: 0,
       max: 2500000,
       step: 10000
     },
     EUR: {
       symbol: '€',
-      rate: 0.085, // 1 NOK = 0.085 EUR, or 1 EUR = 11.76 NOK
+      rate: EXCHANGE_RATES.EUR,
       min: 0,
       max: 212500,  // 2,500,000 NOK * 0.085
       step: 850
     },
     USD: {
       symbol: 'USD',
-      rate: 0.09, // 1 NOK = 0.09 USD, or 1 USD = 11.11 NOK
+      rate: EXCHANGE_RATES.USD,
       min: 0,
       max: 225000,
       step: 900
     },
     GBP: {
       symbol: '£',
-      rate: 0.07, // 1 NOK = 0.07 GBP, or 1 GBP = 14.29 NOK
+      rate: EXCHANGE_RATES.GBP,
       min: 0,
       max: 175000,
       step: 700
     },
     CNY: {
       symbol: '¥',
-      rate: 0.65, // 1 NOK = 0.65 CNY, or 1 CNY = 1.54 NOK
+      rate: EXCHANGE_RATES.CNY,
       min: 0,
       max: 1625000, // 2,500,000 NOK * 0.65
       step: 6500
@@ -193,11 +196,7 @@ const BudgetCalculator = () => {
     const recommendedNOK = Math.round(minNOK * recommendationMultiplier);
     
     // Convert to display currency if needed
-    if (currency === 'NOK') {
-      return recommendedNOK;
-    } else {
-      return Math.round(recommendedNOK * currencySettings[currency].rate);
-    }
+    return fromNOK(recommendedNOK, currency);
   };
 
   // Mark field as touched
@@ -213,24 +212,10 @@ const BudgetCalculator = () => {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   };
 
-  // Format currency for display
+  // Format currency for display using our utility
   const formatCurrencyDisplay = (value, currencyCode) => {
     if (!value && value !== 0) return '';
-    
-    // Format with spaces as thousands separators
-    const formattedNumber = formatNumber(value);
-    
-    // Add appropriate currency symbol based on currency code
-    switch (currencyCode) {
-      case 'EUR':
-        return `${formattedNumber} €`;
-      case 'GBP':
-        return `${formattedNumber} £`;
-      case 'CNY':
-        return `${formattedNumber} ¥`;
-      default:
-        return `${formattedNumber} ${currencyCode}`;
-    }
+    return formatCurrency(value, currencyCode);
   };
 
   // Calculate minimum budget in NOK
@@ -332,23 +317,18 @@ const BudgetCalculator = () => {
     // Get minimum budget in NOK
     const minBudgetNOK = calculateMinimumBudgetNOK();
     
-    // Convert to display currency if needed
-    if (currency === 'NOK') {
-      return minBudgetNOK;
-    } else {
-      return Math.round(minBudgetNOK * currencySettings[currency].rate);
-    }
+    // Convert to display currency
+    return fromNOK(minBudgetNOK, currency);
   };
 
-  // Calculate maximum budget
+  // Calculate maximum budget using our currency utilities
   const calculateMaximumBudget = () => {
     const min = minimumBudget;
     
     // If minimum is 0, use a default max value in the current currency
     if (min === 0) {
       return currency === 'NOK' ? 100000 : 
-             currency === 'USD' ? 9000 : 
-             7000; // GBP
+             fromNOK(100000, currency);
     }
     
     // Use an exponential decay function for the multiplier
@@ -356,11 +336,16 @@ const BudgetCalculator = () => {
     const minMultiplier = 2;
     const decayFactor = 1000000;
     
+    // If not NOK, we need to convert min to NOK for calculation
+    const minInNOK = currency === 'NOK' ? min : toNOK(min, currency);
+    
     // Calculate multiplier using exponential decay
     const multiplier = minMultiplier + (baseMultiplier - minMultiplier) * 
-                      Math.exp(-min / decayFactor);
+                      Math.exp(-minInNOK / decayFactor);
     
-    return Math.round(min * multiplier);
+    // Calculate max in NOK then convert to display currency
+    const maxInNOK = minInNOK * multiplier;
+    return currency === 'NOK' ? Math.round(maxInNOK) : fromNOK(maxInNOK, currency);
   };
 
   // Handle smooth step transition
@@ -477,7 +462,7 @@ const BudgetCalculator = () => {
         if (currency === 'NOK') {
           setBudgetNOK(newRecommendedBudget);
         } else {
-          setBudgetNOK(Math.round(newRecommendedBudget / currencySettings[currency].rate));
+          setBudgetNOK(toNOK(newRecommendedBudget, currency));
         }
       }, 0);
     }
@@ -504,7 +489,7 @@ const BudgetCalculator = () => {
         if (currency === 'NOK') {
           setBudgetNOK(newRecommendedBudget);
         } else {
-          setBudgetNOK(Math.round(newRecommendedBudget / currencySettings[currency].rate));
+          setBudgetNOK(toNOK(newRecommendedBudget, currency));
         }
       }, 0);
     }
@@ -534,13 +519,13 @@ const BudgetCalculator = () => {
         if (currency === 'NOK') {
           setBudgetNOK(newRecommendedBudget);
         } else {
-          setBudgetNOK(Math.round(newRecommendedBudget / currencySettings[currency].rate));
+          setBudgetNOK(toNOK(newRecommendedBudget, currency));
         }
       }, 0);
     }
   };
 
-  // Handle budget input change - cleaner implementation
+  // Handle budget input change with improved currency conversion
   const handleBudgetInputChange = (e) => {
     const value = e.target.value.replace(/\D/g, '');
     const newBudget = value === '' ? 0 : Number(value);
@@ -548,38 +533,38 @@ const BudgetCalculator = () => {
     // Update display budget
     setBudget(newBudget);
     
-    // Update NOK value
+    // Update NOK value using our currency utility
     if (currency === 'NOK') {
       setBudgetNOK(newBudget);
     } else {
-      // Convert to NOK
-      setBudgetNOK(Math.round(newBudget / currencySettings[currency].rate));
+      setBudgetNOK(toNOK(newBudget, currency));
     }
   };
 
-  // Handle slider change
+  // Handle slider change with improved currency conversion
   const handleBudgetSliderChange = (e) => {
     const newBudget = Number(e.target.value);
     
     // Update display budget
     setBudget(newBudget);
     
-    // Update NOK value
+    // Update NOK value using our currency utility
     if (currency === 'NOK') {
       setBudgetNOK(newBudget);
     } else {
-      // Convert to NOK
-      setBudgetNOK(Math.round(newBudget / currencySettings[currency].rate));
+      setBudgetNOK(toNOK(newBudget, currency));
     }
   };
 
-  // Handle currency change - improved implementation
+  // Handle currency change with improved conversion
   const handleCurrencyChange = (e) => {
     const newCurrency = e.target.value;
     const oldCurrency = currency;
     
     // Skip if same currency
     if (newCurrency === oldCurrency) return;
+    
+    console.log(`Currency change: ${oldCurrency} to ${newCurrency}`);
     
     // First update the currency
     setCurrency(newCurrency);
@@ -589,7 +574,7 @@ const BudgetCalculator = () => {
       // Ensure we have a valid NOK value
       const nokValue = budgetNOK > 0 ? 
         budgetNOK : 
-        (oldCurrency === 'NOK' ? budget : Math.round(budget / currencySettings[oldCurrency].rate));
+        toNOK(budget, oldCurrency);
       
       // Store NOK value if not already set
       if (budgetNOK === 0) {
@@ -597,15 +582,16 @@ const BudgetCalculator = () => {
       }
       
       // Convert NOK to new currency
-      const newBudgetValue = newCurrency === 'NOK' ? 
-        nokValue : 
-        Math.round(nokValue * currencySettings[newCurrency].rate);
+      const newBudgetValue = fromNOK(nokValue, newCurrency);
+      
+      console.log(`Converting budget: ${budget} ${oldCurrency} → ${newBudgetValue} ${newCurrency}`);
+      console.log(`Internal NOK value: ${nokValue}`);
       
       setBudget(newBudgetValue);
     }
   };
 
-  // Handle form submission
+  // Handle form submission with improved currency handling
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -613,12 +599,15 @@ const BudgetCalculator = () => {
 
     setIsSubmitting(true);
 
-    // Always send the NOK budget value to the backend
+    // Always ensure we have the correct NOK value for backend processing
+    const budgetToSend = budgetNOK > 0 ? budgetNOK : toNOK(budget, currency);
+
+    // Prepare form data with NOK budget
     const formData = {
       title,
       companyName,
       email,
-      budget: budgetNOK, // Send NOK value for calculation
+      budget: budgetToSend, // Send NOK value for calculation
       daysInOslo,
       daysOutOfOslo,
       locations,
@@ -629,6 +618,10 @@ const BudgetCalculator = () => {
       })),
       currency, // Include display currency for PDF/Excel output
     };
+
+    console.log("Submitting form data:", formData);
+    console.log("Budget in NOK:", budgetToSend);
+    console.log("Display currency:", currency);
 
     try {
       const response = await fetch('https://stiangk.dev/api/shot-in-the-dark', {
@@ -675,7 +668,7 @@ const BudgetCalculator = () => {
       if (currency === 'NOK') {
         setBudgetNOK(newRecommendedBudget);
       } else {
-        setBudgetNOK(Math.round(newRecommendedBudget / currencySettings[currency].rate));
+        setBudgetNOK(toNOK(newRecommendedBudget, currency));
       }
     }
   }, [daysInOslo, daysOutOfOslo]);
@@ -1004,7 +997,7 @@ const BudgetCalculator = () => {
                 {/* Right side - Production details */}
                 <div className="w-full lg:w-7/12 bg-white rounded-2xl shadow-sm p-8 space-y-6">
                   <form onSubmit={handleSubmit} className="space-y-8">
-                    {/* Shooting days and locations row - with spread out pluss/minus buttons */}
+                    {/* Shooting days and locations row - with spread out plus/minus buttons */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       {/* OSLO DAYS */}
                       <div className="space-y-2">
