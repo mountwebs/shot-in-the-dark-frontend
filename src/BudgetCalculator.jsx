@@ -11,7 +11,7 @@ import Work4 from './assets/Bilder/Work 4.png';
 import Work5 from './assets/Bilder/Work 5.png';
 
 // Import currency utilities
-import { toNOK, fromNOK, formatCurrency, EXCHANGE_RATES } from './currency-utils';
+import { formatCurrency, EXCHANGE_RATES } from './currency-utils';
 
 // Create an array of all images
 const images = [Work1, Work2, Work3, Work4, Work5];
@@ -33,8 +33,7 @@ const BudgetCalculator = () => {
   const [title, setTitle] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
-  const [budget, setBudget] = useState(0); // Display currency value
-  const [budgetNOK, setBudgetNOK] = useState(0); // Internal NOK value for calculations
+  const [budget, setBudget] = useState(0); // This is now in display currency
   const [daysInOslo, setDaysInOslo] = useState(0);
   const [daysOutOfOslo, setDaysOutOfOslo] = useState(0);
   const [locations, setLocations] = useState(0);
@@ -133,11 +132,11 @@ const BudgetCalculator = () => {
 
   // Calculate recommended budget with specialized adjustments
   const calculateRecommendedBudget = () => {
-    // Get minimum budget in NOK
-    const minNOK = calculateMinimumBudgetNOK();
+    // Get minimum budget in current currency
+    const min = minimumBudget;
     
     // Return 0 if minimum is 0
-    if (minNOK === 0) return 0;
+    if (min === 0) return 0;
     
     // Start with base recommended (60% above minimum)
     let recommendationMultiplier = 1.6;
@@ -192,11 +191,8 @@ const BudgetCalculator = () => {
       recommendationMultiplier += 0.15 * (totalDays - 1);
     }
     
-    // Calculate recommended budget in NOK
-    const recommendedNOK = Math.round(minNOK * recommendationMultiplier);
-    
-    // Convert to display currency if needed
-    return fromNOK(recommendedNOK, currency);
+    // Calculate recommended budget in display currency
+    return Math.round(min * recommendationMultiplier);
   };
 
   // Mark field as touched
@@ -218,8 +214,8 @@ const BudgetCalculator = () => {
     return formatCurrency(value, currencyCode);
   };
 
-  // Calculate minimum budget in NOK
-  const calculateMinimumBudgetNOK = () => {
+  // Calculate minimum budget in current currency
+  const calculateMinimumBudget = () => {
     const totalDays = daysInOslo + daysOutOfOslo;
     
     // If no days are selected, return 0 budget
@@ -308,17 +304,15 @@ const BudgetCalculator = () => {
       minBudget = minBudget * 0.9;
     }
 
-    // Return the minimum budget in NOK
-    return Math.round(minBudget);
-  };
-
-  // Calculate minimum budget in display currency
-  const calculateMinimumBudget = () => {
-    // Get minimum budget in NOK
-    const minBudgetNOK = calculateMinimumBudgetNOK();
+    // Calculate in NOK first
+    const minBudgetNOK = Math.round(minBudget);
     
-    // Convert to display currency
-    return fromNOK(minBudgetNOK, currency);
+    // Then convert to the selected currency
+    if (currency === 'NOK') {
+      return minBudgetNOK;
+    } else {
+      return Math.round(minBudgetNOK * EXCHANGE_RATES[currency]);
+    }
   };
 
   // Calculate maximum budget using our currency utilities
@@ -328,7 +322,7 @@ const BudgetCalculator = () => {
     // If minimum is 0, use a default max value in the current currency
     if (min === 0) {
       return currency === 'NOK' ? 100000 : 
-             fromNOK(100000, currency);
+             Math.round(100000 * EXCHANGE_RATES[currency]);
     }
     
     // Use an exponential decay function for the multiplier
@@ -337,7 +331,7 @@ const BudgetCalculator = () => {
     const decayFactor = 1000000;
     
     // If not NOK, we need to convert min to NOK for calculation
-    const minInNOK = currency === 'NOK' ? min : toNOK(min, currency);
+    const minInNOK = currency === 'NOK' ? min : Math.round(min / EXCHANGE_RATES[currency]);
     
     // Calculate multiplier using exponential decay
     const multiplier = minMultiplier + (baseMultiplier - minMultiplier) * 
@@ -345,7 +339,8 @@ const BudgetCalculator = () => {
     
     // Calculate max in NOK then convert to display currency
     const maxInNOK = minInNOK * multiplier;
-    return currency === 'NOK' ? Math.round(maxInNOK) : fromNOK(maxInNOK, currency);
+    return currency === 'NOK' ? Math.round(maxInNOK) : 
+           Math.round(maxInNOK * EXCHANGE_RATES[currency]);
   };
 
   // Handle smooth step transition
@@ -457,13 +452,6 @@ const BudgetCalculator = () => {
       setTimeout(() => {
         const newRecommendedBudget = calculateRecommendedBudget();
         setBudget(newRecommendedBudget);
-        
-        // Set NOK value
-        if (currency === 'NOK') {
-          setBudgetNOK(newRecommendedBudget);
-        } else {
-          setBudgetNOK(toNOK(newRecommendedBudget, currency));
-        }
       }, 0);
     }
   };
@@ -484,13 +472,6 @@ const BudgetCalculator = () => {
       setTimeout(() => {
         const newRecommendedBudget = calculateRecommendedBudget();
         setBudget(newRecommendedBudget);
-        
-        // Set NOK value
-        if (currency === 'NOK') {
-          setBudgetNOK(newRecommendedBudget);
-        } else {
-          setBudgetNOK(toNOK(newRecommendedBudget, currency));
-        }
       }, 0);
     }
   };
@@ -514,49 +495,28 @@ const BudgetCalculator = () => {
       setTimeout(() => {
         const newRecommendedBudget = calculateRecommendedBudget();
         setBudget(newRecommendedBudget);
-        
-        // Set NOK value
-        if (currency === 'NOK') {
-          setBudgetNOK(newRecommendedBudget);
-        } else {
-          setBudgetNOK(toNOK(newRecommendedBudget, currency));
-        }
       }, 0);
     }
   };
 
-  // Handle budget input change with improved currency conversion
+  // Handle budget input change
   const handleBudgetInputChange = (e) => {
     const value = e.target.value.replace(/\D/g, '');
     const newBudget = value === '' ? 0 : Number(value);
     
     // Update display budget
     setBudget(newBudget);
-    
-    // Update NOK value using our currency utility
-    if (currency === 'NOK') {
-      setBudgetNOK(newBudget);
-    } else {
-      setBudgetNOK(toNOK(newBudget, currency));
-    }
   };
 
-  // Handle slider change with improved currency conversion
+  // Handle slider change
   const handleBudgetSliderChange = (e) => {
     const newBudget = Number(e.target.value);
     
     // Update display budget
     setBudget(newBudget);
-    
-    // Update NOK value using our currency utility
-    if (currency === 'NOK') {
-      setBudgetNOK(newBudget);
-    } else {
-      setBudgetNOK(toNOK(newBudget, currency));
-    }
   };
 
-  // Handle currency change with improved conversion
+  // Handle currency change
   const handleCurrencyChange = (e) => {
     const newCurrency = e.target.value;
     const oldCurrency = currency;
@@ -569,29 +529,30 @@ const BudgetCalculator = () => {
     // First update the currency
     setCurrency(newCurrency);
     
-    // Then update the display budget based on NOK value
+    // Then update the display budget based on rates
     if (budget > 0) {
-      // Ensure we have a valid NOK value
-      const nokValue = budgetNOK > 0 ? 
-        budgetNOK : 
-        toNOK(budget, oldCurrency);
+      let newBudgetValue;
       
-      // Store NOK value if not already set
-      if (budgetNOK === 0) {
-        setBudgetNOK(nokValue);
+      // Convert budget using exchange rates
+      if (oldCurrency === 'NOK') {
+        // From NOK to foreign currency
+        newBudgetValue = Math.round(budget * EXCHANGE_RATES[newCurrency]);
+      } else if (newCurrency === 'NOK') {
+        // From foreign currency to NOK
+        newBudgetValue = Math.round(budget / EXCHANGE_RATES[oldCurrency]);
+      } else {
+        // From one foreign currency to another
+        const valueInNOK = Math.round(budget / EXCHANGE_RATES[oldCurrency]);
+        newBudgetValue = Math.round(valueInNOK * EXCHANGE_RATES[newCurrency]);
       }
       
-      // Convert NOK to new currency
-      const newBudgetValue = fromNOK(nokValue, newCurrency);
-      
       console.log(`Converting budget: ${budget} ${oldCurrency} → ${newBudgetValue} ${newCurrency}`);
-      console.log(`Internal NOK value: ${nokValue}`);
       
       setBudget(newBudgetValue);
     }
   };
 
-  // Handle form submission with improved currency handling
+  // Handle form submission - MODIFIED to send original currency values
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -599,15 +560,12 @@ const BudgetCalculator = () => {
 
     setIsSubmitting(true);
 
-    // Always ensure we have the correct NOK value for backend processing
-    const budgetToSend = budgetNOK > 0 ? budgetNOK : toNOK(budget, currency);
-
-    // Prepare form data with NOK budget
+    // Prepare form data with ORIGINAL currency values
     const formData = {
       title,
       companyName,
       email,
-      budget: budgetToSend, // Send NOK value for calculation
+      budget: budget, // Send budget in original currency
       daysInOslo,
       daysOutOfOslo,
       locations,
@@ -616,12 +574,11 @@ const BudgetCalculator = () => {
         type: item.type,
         days: item.days
       })),
-      currency, // Include display currency for PDF/Excel output
+      currency, // Include currency code for backend conversion
     };
 
     console.log("Submitting form data:", formData);
-    console.log("Budget in NOK:", budgetToSend);
-    console.log("Display currency:", currency);
+    console.log("Budget:", budget, currency);
 
     try {
       const response = await fetch('https://stiangk.dev/api/shot-in-the-dark', {
@@ -663,13 +620,6 @@ const BudgetCalculator = () => {
     if (totalDays > 0 && budget === 0) {
       const newRecommendedBudget = calculateRecommendedBudget();
       setBudget(newRecommendedBudget);
-      
-      // Set NOK value
-      if (currency === 'NOK') {
-        setBudgetNOK(newRecommendedBudget);
-      } else {
-        setBudgetNOK(toNOK(newRecommendedBudget, currency));
-      }
     }
   }, [daysInOslo, daysOutOfOslo]);
 
@@ -712,7 +662,6 @@ const BudgetCalculator = () => {
               onClick={() => {
                 setSuccess(false);
                 setBudget(0);
-                setBudgetNOK(0);
                 setKeywords([]);
                 setEquipment([]);
                 setDaysInOslo(0);
@@ -1253,49 +1202,49 @@ const BudgetCalculator = () => {
         </div>
       </div>
 
-{/* Fixed navigation at the bottom with logo */}
-{!success && (
-  <div className="fixed bottom-0 left-0 right-0 z-10">
-    {/* Semi-transparent backdrop - bare på mobil */}
-    <div className="bg-white/80 sm:bg-transparent shadow-md sm:shadow-none pt-3 pb-3 border-t sm:border-t-0 border-[#eeebe7]">
-      <div className="flex flex-col items-center">
-        <div className="nav-pills flex w-full max-w-xs h-12 bg-white rounded-full shadow-sm relative border border-[#eeebe7] mb-3">
-          <div 
-            className="nav-pill-indicator absolute top-1 bottom-1 bg-[#47403a] rounded-full transition-all duration-200 ease-in-out"
-            style={{ 
-              width: 'calc(50% - 6px)',
-              left: step === 2 ? 'calc(50% + 3px)' : '3px',
-            }}
-          ></div>
-          
-          <button 
-            onClick={() => handleStepChange(1)}
-            className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
-          >
-            <span className={`font-medium text-sm transition-colors duration-200 ${step === 1 ? 'text-white' : 'text-[#6f655c]'}`}>
-              Info
-            </span>
-          </button>
-          
-          <button 
-            onClick={() => handleStepChange(2)}
-            className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
-          >
-            <span className={`font-medium text-sm transition-colors duration-200 ${step === 2 ? 'text-white' : 'text-[#6f655c]'}`}>
-              Budget
-            </span>
-          </button>
+      {/* Fixed navigation at the bottom with logo */}
+      {!success && (
+        <div className="fixed bottom-0 left-0 right-0 z-10">
+          {/* Semi-transparent backdrop - bare på mobil */}
+          <div className="bg-white/80 sm:bg-transparent shadow-md sm:shadow-none pt-3 pb-3 border-t sm:border-t-0 border-[#eeebe7]">
+            <div className="flex flex-col items-center">
+              <div className="nav-pills flex w-full max-w-xs h-12 bg-white rounded-full shadow-sm relative border border-[#eeebe7] mb-3">
+                <div 
+                  className="nav-pill-indicator absolute top-1 bottom-1 bg-[#47403a] rounded-full transition-all duration-200 ease-in-out"
+                  style={{ 
+                    width: 'calc(50% - 6px)',
+                    left: step === 2 ? 'calc(50% + 3px)' : '3px',
+                  }}
+                ></div>
+                
+                <button 
+                  onClick={() => handleStepChange(1)}
+                  className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
+                >
+                  <span className={`font-medium text-sm transition-colors duration-200 ${step === 1 ? 'text-white' : 'text-[#6f655c]'}`}>
+                    Info
+                  </span>
+                </button>
+                
+                <button 
+                  onClick={() => handleStepChange(2)}
+                  className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
+                >
+                  <span className={`font-medium text-sm transition-colors duration-200 ${step === 2 ? 'text-white' : 'text-[#6f655c]'}`}>
+                    Budget
+                  </span>
+                </button>
+              </div>
+              
+              <div className="w-10 sm:w-14">
+                <a href="https://www.line.productions/" target="_blank" rel="noopener noreferrer">
+                  <img src={Logo} alt="Line.Production Logo" className="w-full" />
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
-        
-        <div className="w-10 sm:w-14">
-          <a href="https://www.line.productions/" target="_blank" rel="noopener noreferrer">
-            <img src={Logo} alt="Line.Production Logo" className="w-full" />
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </div>
   );
 };
