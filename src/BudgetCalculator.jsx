@@ -774,7 +774,7 @@ const BudgetCalculator = () => {
                       How to get your budget
                     </h2>
                     <p className="text-[#2d2a26] text-base sm:text-lg leading-relaxed mb-8">
-                      Enter your production details, and Line.Calc will instantly generate a reliable
+                      Enter your production details on the next slide and we will instantly generate a reliable
                       budget estimate based on industry-standard costs and our expertise. The draft will be
                       sent directly to your email — and ours — for further review.
                     </p>
