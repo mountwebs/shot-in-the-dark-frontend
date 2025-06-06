@@ -552,20 +552,30 @@ const BudgetCalculator = () => {
     }
   };
 
-  // Handle form submission - MODIFIED to send original currency values
+  // Handle form submission - MODIFIED to convert to NOK before sending
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
     setIsSubmitting(true);
+    
+    // Calculate NOK budget value
+    let budgetInNOK = budget;
+    if (currency !== 'NOK') {
+      // Use the rate from our currency settings to convert to NOK
+      budgetInNOK = Math.round(budget / EXCHANGE_RATES[currency]);
+      console.log(`Converting ${budget} ${currency} to ${budgetInNOK} NOK for backend processing`);
+    }
 
-    // Prepare form data with ORIGINAL currency values
+    // Prepare form data - send both the NOK value and display info
     const formData = {
       title,
       companyName,
       email,
-      budget: budget, // Send budget in original currency
+      budget: budgetInNOK, // Send NOK value
+      displayBudget: budget, // Original budget for display
+      displayCurrency: currency, // Original currency for display
       daysInOslo,
       daysOutOfOslo,
       locations,
@@ -574,11 +584,12 @@ const BudgetCalculator = () => {
         type: item.type,
         days: item.days
       })),
-      currency, // Include currency code for backend conversion
+      currency: 'NOK' // Mark as NOK since we're sending NOK value
     };
 
     console.log("Submitting form data:", formData);
-    console.log("Budget:", budget, currency);
+    console.log("Original budget:", budget, currency);
+    console.log("Budget in NOK:", budgetInNOK);
 
     try {
       const response = await fetch('https://stiangk.dev/api/shot-in-the-dark', {
