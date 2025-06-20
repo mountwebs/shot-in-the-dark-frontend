@@ -764,13 +764,13 @@ const BudgetCalculator = () => {
       `}</style>
       
       {/* Logo at the top */}
-      <div className="pt-3 sm:pt-6 pb-2 sm:pb-4">
-        <div className="flex justify-center">
-          <div className="h-14 sm:h-16 w-14 sm:w-16 flex items-center justify-center">
-            <img src={LogoCalc} alt="Line.Calc Logo" className="h-6 sm:h-8" />
-          </div>
-        </div>
-      </div>
+      <div className="pt-3 sm:pt-6 pb-6 sm:pb-8">
+  <div className="flex justify-center">
+    <div className="h-14 sm:h-16 w-14 sm:w-16 flex items-center justify-center">
+      <img src={LogoCalc} alt="Line.Calc Logo" className="h-6 sm:h-8" />
+    </div>
+  </div>
+</div>
       
       {/* Main content area */}
       <div className="relative flex flex-col flex-grow">
@@ -830,7 +830,7 @@ const BudgetCalculator = () => {
 
             {/* STEP 2 - CALCULATOR */}
             {step === 2 && (
-              <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 px-1">
+              <div className="flex flex-col lg:flex-row gap-8 lg:gap-6 px-1">
                 {/* Left side - Basic info */}
                 <div className="w-full lg:w-5/12 space-y-4 flex flex-col justify-center">
                   <div className="bg-white p-6 rounded-2xl shadow-sm">
