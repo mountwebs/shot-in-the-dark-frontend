@@ -64,7 +64,8 @@ const BudgetCalculator = () => {
     { id: 'tech-equipment', label: 'Technical Equipment' },
     { id: 'local-talent', label: 'Local Talent' },
     { id: 'permits', label: 'Permits' },
-    { id: 'remote-shoot', label: 'Remote Shoot' }
+    { id: 'remote-shoot', label: 'Remote Shoot' },
+    { id: 'postproduction', label: 'Post-production' }
   ];
 
   const equipmentOptions = ['Drone', 'Road block', 'Lowloader'];
@@ -173,6 +174,10 @@ const BudgetCalculator = () => {
     // Remote shoot premium
     if (keywords.includes('remote-shoot')) {
       recommendationMultiplier += 0.20;
+    }
+
+    if (keywords.includes('postproduction')) {
+      recommendationMultiplier += 0.20; // Add 20% to the recommendation multiplier
     }
     
     // Special equipment premium
@@ -304,6 +309,10 @@ const BudgetCalculator = () => {
       minBudget = minBudget * 0.9;
     }
 
+    if (keywords.includes('postproduction')) {
+      minBudget = minBudget * 1.1; // Increase by 10%
+    }
+
     // Calculate in NOK first
     const minBudgetNOK = Math.round(minBudget);
     
@@ -337,11 +346,18 @@ const BudgetCalculator = () => {
     const multiplier = minMultiplier + (baseMultiplier - minMultiplier) * 
                       Math.exp(-minInNOK / decayFactor);
     
-    // Calculate max in NOK then convert to display currency
-    const maxInNOK = minInNOK * multiplier;
-    return currency === 'NOK' ? Math.round(maxInNOK) : 
-           Math.round(maxInNOK * EXCHANGE_RATES[currency]);
-  };
+  // Calculate max in NOK
+  let maxInNOK = minInNOK * multiplier;
+  
+  // NEW: Add 30% to maximum budget if post-production is selected
+  if (keywords.includes('postproduction')) {
+    maxInNOK = maxInNOK * 1.3; // Increase by 30%
+  }
+  
+  // Convert to display currency if needed
+  return currency === 'NOK' ? Math.round(maxInNOK) : 
+         Math.round(maxInNOK * EXCHANGE_RATES[currency]);
+};
 
   // Handle smooth step transition
   const handleStepChange = (newStep) => {
