@@ -1,8 +1,8 @@
 // src/CodeFlowchart/BudgetDocs.jsx
 // Documentation that dynamically updates based on code execution
 import React, { useState, useEffect } from 'react';
-import OverviewSection from './sections/OverviewSection';
-import CrewSection from './sections/CrewSection';
+import OverviewSection from './Sections/OverviewSection';
+import CrewSection from './Sections/CrewSection';
 
 // Import your API function for backend data fetching
 import { fetchFlowchartData } from './api';  // Create this file if it doesn't exist
