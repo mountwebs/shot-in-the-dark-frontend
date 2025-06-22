@@ -773,7 +773,7 @@ const BudgetCalculator = () => {
 </div>
       
       {/* Main content area */}
-      <div className="relative flex flex-col flex-grow">
+      <div className="relative flex flex-col flex-grow justify-center">
         <div className="max-w-6xl w-full mx-auto px-6">
           <div className={`slide-container ${slideDirection ? `slide-${slideDirection}` : ''}`}>
             {/* STEP 1 – INTRO SLIDE */}
@@ -1230,48 +1230,45 @@ const BudgetCalculator = () => {
       </div>
 
       {/* Fixed navigation at the bottom with logo */}
-      {!success && (
-        <div className="fixed bottom-6 left-0 right-0 z-10">
-          {/* Semi-transparent backdrop - bare på mobil */}
-          <div className="bg-white/80 sm:bg-transparent shadow-md sm:shadow-none pt-3 pb-3 border-t sm:border-t-0 border-[#eeebe7]">
-            <div className="flex flex-col items-center">
-              <div className="nav-pills flex w-full max-w-xs h-12 bg-white rounded-full shadow-sm relative border border-[#eeebe7] mb-3">
-                <div 
-                  className="nav-pill-indicator absolute top-1 bottom-1 bg-[#47403a] rounded-full transition-all duration-200 ease-in-out"
-                  style={{ 
-                    width: 'calc(50% - 6px)',
-                    left: step === 2 ? 'calc(50% + 3px)' : '3px',
-                  }}
-                ></div>
-                
-                <button 
-                  onClick={() => handleStepChange(1)}
-                  className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
-                >
-                  <span className={`font-medium text-sm transition-colors duration-200 ${step === 1 ? 'text-white' : 'text-[#6f655c]'}`}>
-                    Info
-                  </span>
-                </button>
-                
-                <button 
-                  onClick={() => handleStepChange(2)}
-                  className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
-                >
-                  <span className={`font-medium text-sm transition-colors duration-200 ${step === 2 ? 'text-white' : 'text-[#6f655c]'}`}>
-                    Budget
-                  </span>
-                </button>
-              </div>
-              
-              <div className="w-10 sm:w-14">
-                <a href="https://www.line.productions/" target="_blank" rel="noopener noreferrer">
-                  <img src={Logo} alt="Line.Production Logo" className="w-full" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="fixed bottom-0 left-0 right-0 z-10">
+  <div className="pt-4 pb-6 shadow-md sm:shadow-none sm:bg-transparent sm:backdrop-blur-none bg-[#f8f7f5]/80 backdrop-blur-md transition-all">
+    <div className="flex flex-col items-center">
+      <div className="nav-pills flex w-full max-w-xs h-12 bg-white rounded-full shadow-sm relative border border-[#eeebe7] mb-3">
+        <div 
+          className="nav-pill-indicator absolute top-1 bottom-1 bg-[#47403a] rounded-full transition-all duration-200 ease-in-out"
+          style={{ 
+            width: 'calc(50% - 6px)',
+            left: step === 2 ? 'calc(50% + 3px)' : '3px',
+          }}
+        ></div>
+
+        <button 
+          onClick={() => handleStepChange(1)}
+          className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
+        >
+          <span className={`font-medium text-sm transition-colors duration-200 ${step === 1 ? 'text-white' : 'text-[#6f655c]'}`}>
+            Info
+          </span>
+        </button>
+
+        <button 
+          onClick={() => handleStepChange(2)}
+          className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
+        >
+          <span className={`font-medium text-sm transition-colors duration-200 ${step === 2 ? 'text-white' : 'text-[#6f655c]'}`}>
+            Budget
+          </span>
+        </button>
+      </div>
+
+      <div className="w-10 sm:w-14 mt-4">
+        <a href="https://www.line.productions/" target="_blank" rel="noopener noreferrer">
+          <img src={Logo} alt="Line.Production Logo" className="w-full" />
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
     </div>
   );
 };
