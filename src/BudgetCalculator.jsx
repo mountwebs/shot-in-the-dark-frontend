@@ -608,6 +608,7 @@ const BudgetCalculator = () => {
     console.log("Budget in NOK:", budgetInNOK);
 
     try {
+      console.log(JSON.stringify(formData))
       const response = await fetch('https://stiangk.dev/api/shot-in-the-dark', {
         method: 'POST',
         headers: {
