@@ -61,11 +61,12 @@ const BudgetCalculator = () => {
   const serviceRequirements = [
     { id: 'fixer', label: 'Fixer' },
     { id: 'full-crew', label: 'Full Crew' },
-    { id: 'tech-equipment', label: 'Technical Equipment' },
-    { id: 'local-talent', label: 'Local Talent' },
-    { id: 'permits', label: 'Permits' },
-    { id: 'remote-shoot', label: 'Remote Shoot' },
-    { id: 'postproduction', label: 'Post-production' }
+    { id: 'tech-equipment', label: 'Shooting Equipment' },
+    { id: 'creatives', label: 'Creatives' },
+    { id: 'scout', label: 'Scout' },
+    { id: 'postproduction', label: 'Post-prod' },
+    { id: 'local-talent', label: 'Casting' },
+    { id: 'remote-shoot', label: 'Remote Shoot' }
   ];
 
   const equipmentOptions = ['Drone', 'Road block', 'Lowloader'];
@@ -584,23 +585,17 @@ const BudgetCalculator = () => {
       console.log(`Converting ${budget} ${currency} to ${budgetInNOK} NOK for backend processing`);
     }
 
-    // Prepare form data - send both the NOK value and display info
     const formData = {
       title,
       companyName,
       email,
-      budget: budgetInNOK, // Send NOK value
-      displayBudget: budget, // Original budget for display
-      displayCurrency: currency, // Original currency for display
+      budget: budgetInNOK,  // Always in NOK for calculations
+      currency: currency,   // User's selected currency (EUR, USD, etc) for display
       daysInOslo,
       daysOutOfOslo,
       locations,
       keywords,
-      equipment: equipment.map(item => ({
-        type: item.type,
-        days: item.days
-      })),
-      currency: 'NOK' // Mark as NOK since we're sending NOK value
+      equipment            // No need to map, already in correct format
     };
 
     console.log("Submitting form data:", formData);
