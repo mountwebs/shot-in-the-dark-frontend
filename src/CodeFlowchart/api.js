@@ -14,4 +14,4 @@ export async function fetchFlowchartData() {
       console.error('Error fetching flowchart data:', error);
       throw error; // Re-throw to let calling code handle it
     }
-  }
+  } 

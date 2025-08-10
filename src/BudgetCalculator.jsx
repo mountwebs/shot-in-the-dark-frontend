@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Mail, Check } from 'lucide-react';
 import Logo from './assets/Logo 3.png';
 import LogoCalc from './assets/Logo calc.png';
@@ -15,6 +15,64 @@ import { formatCurrency, EXCHANGE_RATES } from './currency-utils';
 
 // Create an array of all images
 const images = [Work1, Work2, Work3, Work4, Work5];
+
+// Tooltip component
+const Tooltip = ({ content, children, delay = 1000 }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const timeoutRef = useRef(null);
+  const tooltipRef = useRef(null);
+
+  const handleMouseEnter = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top
+    });
+
+    timeoutRef.current = setTimeout(() => {
+      setShowTooltip(true);
+    }, delay);
+  };
+
+  const handleMouseLeave = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setShowTooltip(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div className="relative inline-block" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+      {children}
+      {showTooltip && content && (
+        <div
+          ref={tooltipRef}
+          className="fixed z-50 px-3 py-2 text-sm text-white bg-gray-800 rounded-lg shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full -mt-2"
+          style={{
+            left: `${position.x}px`,
+            top: `${position.y}px`,
+            maxWidth: '250px',
+            wordWrap: 'break-word'
+          }}
+        >
+          <div className="relative">
+            {content}
+            <div className="absolute w-3 h-3 bg-gray-800 transform rotate-45 -bottom-1.5 left-1/2 -translate-x-1/2"></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const BudgetCalculator = () => {
   // Get a random image on component mount
@@ -45,6 +103,26 @@ const BudgetCalculator = () => {
   const [success, setSuccess] = useState(false);
   const [slideDirection, setSlideDirection] = useState(null);
   const [touchedFields, setTouchedFields] = useState({});
+
+  // Keyword descriptions
+  const keywordDescriptions = {
+    film: "Filming: Shooting moving images, the classic way. If both stills and film are selected, the stills part will politely scale down.",
+    stills: "Stills: A different crew with a love for tripods. Generally lower cost, but can scale up if needed. May involve more travel—because the light is always better somewhere else.",
+    documentary: "Documentary: Smaller team, flexible setup. Often an add-on to a film shoot—and yes, someone will inevitably suggest 'handheld for authenticity.'",
+    commercial: "Commercial: Higher demands on crew and lighting. Everything looks clean and intentional.",
+    car: "Car shoot: Road blocks, more logistics, and shiny clients who will never be cold.",
+    fashion: "Fashion: Styling, makeup, and perfectly curated locations. We have a studio, but let's be honest—it’s mostly for coffee breaks.",
+    plates: "Plates: Drive-by or pass-by shots for VFX, usually with a light crew.",
+    music: "Music video: Often an add-on to film. Creative demands, unpredictable hours, and the occasional 'can we set this on fire?' request.",
+    fixer: "Fixer: Local facilitation only—not a full crew. Think 'your friendly guide who knows a guy.'",
+    "full-crew": "Full service: Complete crew, production, and logistics.",
+    "tech-equipment": "Camera, lighting, grip packages, and technicians.",
+    creatives: "Adds on a DOP and, for bigger productions, a director. Works well for remote shoots or if you just want us to make some magic.",
+    scout: "Location scouting: Locations move and change, so even with a big database it’s worth getting out there.",
+    postproduction: "Post-production: Editing, grading, and sound—where we fix it in post.",
+    "local-talent": "Local talent: Casting of performers and extras—the friendly faces that make scenes feel genuine.",
+    "remote-shoot": "Remote filming: Extra technical setup so you can direct from your sofa, coffee in hand."
+  };
 
   // Constants and options
   const productionTypes = [
@@ -926,17 +1004,18 @@ const BudgetCalculator = () => {
                         <label className="block text-sm font-medium text-[#6f655c] text-left">Production Type</label>
                         <div className="flex flex-wrap gap-2">
                           {productionTypes.map(type => (
-                            <button
-                              key={type.id}
-                              type="button"
-                              className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(type.id)
-                                ? 'bg-[#47403a] text-white'
-                                : 'bg-[#f8f7f5] text-[#2d2a26] hover:bg-[#f1f0ee]'
-                                }`}
-                              onClick={() => toggleKeyword(type.id)}
-                            >
-                              {type.label}
-                            </button>
+                            <Tooltip key={type.id} content={keywordDescriptions[type.id]}>
+                              <button
+                                type="button"
+                                className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(type.id)
+                                  ? 'bg-[#47403a] text-white'
+                                  : 'bg-[#f8f7f5] text-[#2d2a26] hover:bg-[#f1f0ee]'
+                                  }`}
+                                onClick={() => toggleKeyword(type.id)}
+                              >
+                                {type.label}
+                              </button>
+                            </Tooltip>
                           ))}
                         </div>
                       </div>
@@ -946,19 +1025,18 @@ const BudgetCalculator = () => {
                         <label className="block text-sm font-medium text-[#6f655c] text-left">Service Requirements</label>
                         <div className="flex flex-wrap gap-2">
                           {serviceRequirements.map(req => (
-                            <button
-                              key={req.id}
-                              type="button"
-                              className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(req.id)
-                                ? 'bg-[#47403a] text-white'
-                                : 'bg-[#f8f7f5] text-[#2d2a26] hover:bg-[#f1f0ee]'
-                                }`}
-                              onClick={() => toggleKeyword(req.id)}
-                              title={req.id === 'fixer' ? 'Cannot be selected with Full Crew' : 
-                                   (req.id === 'full-crew' ? 'Cannot be selected with Fixer' : '')}
-                            >
-                              {req.label}
-                            </button>
+                            <Tooltip key={req.id} content={keywordDescriptions[req.id]}>
+                              <button
+                                type="button"
+                                className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(req.id)
+                                  ? 'bg-[#47403a] text-white'
+                                  : 'bg-[#f8f7f5] text-[#2d2a26] hover:bg-[#f1f0ee]'
+                                  }`}
+                                onClick={() => toggleKeyword(req.id)}
+                              >
+                                {req.label}
+                              </button>
+                            </Tooltip>
                           ))}
                         </div>
                       </div>
