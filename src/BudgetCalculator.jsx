@@ -117,7 +117,7 @@ const BudgetCalculator = () => {
     fixer: "Fixer: Local facilitation only—not a full crew. Think 'your friendly guide who knows a guy.'",
     "full-crew": "Full service: Complete crew, production, and logistics.",
     "tech-equipment": "Camera, lighting, grip packages, and technicians.",
-    creatives: "Adds on a DOP and, for bigger productions, a director. Works well for remote shoots or if you just want us to make some magic.",
+    creatives: "Adds on a DOP and for bigger productions, a director. Works well for remote shoots or if you just want us to make some magic.",
     scout: "Location scouting: Locations move and change, so even with a big database it’s worth getting out there.",
     postproduction: "Post-production: Editing, grading, and sound—where we fix it in post.",
     "local-talent": "Local talent: Casting of performers and extras—the friendly faces that make scenes feel genuine.",
@@ -838,7 +838,7 @@ const BudgetCalculator = () => {
       `}</style>
       
       {/* Logo at the top */}
-      <div className="pt-3 sm:pt-6 pb-6 sm:pb-8">
+      <div className="pt-3 sm:pt-6 pb-2 sm:pb-3">
   <div className="flex justify-center">
     <div className="h-14 sm:h-16 w-14 sm:w-16 flex items-center justify-center">
       <img src={LogoCalc} alt="Line.Calc Logo" className="h-6 sm:h-8" />
@@ -847,7 +847,7 @@ const BudgetCalculator = () => {
 </div>
       
       {/* Main content area */}
-      <div className="relative flex flex-col flex-grow justify-center">
+      <div className="relative flex flex-col flex-grow justify-start mt-8 sm:mt-10">
         <div className="max-w-6xl w-full mx-auto px-6">
           <div className={`slide-container ${slideDirection ? `slide-${slideDirection}` : ''}`}>
             {/* STEP 1 – INTRO SLIDE */}
