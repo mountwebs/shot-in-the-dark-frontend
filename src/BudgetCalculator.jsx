@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, Check } from 'lucide-react';
+import { Mail, Check, Upload, Brain, ArrowRight } from 'lucide-react';
 import Logo from './assets/Logo 3.png';
 import LogoCalc from './assets/Logo calc.png';
 
@@ -13,8 +13,270 @@ import Work5 from './assets/Bilder/Work 5.png';
 // Import currency utilities
 import { formatCurrency, EXCHANGE_RATES } from './currency-utils';
 
+// Import heuristic analysis
+import { analyzeBrief } from './utils/heuristicAnalysis.js';
+
 // Create an array of all images
 const images = [Work1, Work2, Work3, Work4, Work5];
+
+// Smart Intake Component
+const SmartIntake = ({ onApply, onContinue }) => {
+  const [file, setFile] = useState(null);
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [resp, setResp] = useState(null);
+  const [error, setError] = useState("");
+
+  // Auto-apply function that triggers after getting results
+  const autoApply = (result) => {
+    const s = result.suggestions;
+    onApply({
+      keywords: [
+        ...(s.productionTypes || []),
+        ...(s.serviceRequirements || []),
+      ],
+      equipment: s.equipment || [],
+      daysInOslo: s.daysInOslo ?? 0,
+      daysOutOfOslo: s.daysOutOfOslo ?? 0,
+      locations: s.locations ?? 1,
+      budgetNOK: s.budgetNOK ?? 0,
+    });
+  };
+
+  // Handle suggest function
+  async function handleSuggest() {
+    setLoading(true); 
+    setError(""); 
+    setResp(null);
+    
+    try {
+      let textContent = text;
+      
+      if (file) {
+        console.log("Processing file:", file.name, "Type:", file.type);
+        
+        if (file.type === 'application/pdf') {
+          // Handle PDF files using PDF.js
+          try {
+            console.log("Starting PDF processing...");
+            const arrayBuffer = await file.arrayBuffer();
+            console.log("PDF arrayBuffer created, size:", arrayBuffer.byteLength);
+            
+            // Use PDF.js to extract text
+            const pdfjsLib = window.pdfjsLib;
+            if (!pdfjsLib) {
+              throw new Error("PDF.js library not loaded. Please refresh the page and try again.");
+            }
+            
+            console.log("Loading PDF document...");
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            console.log("PDF loaded, pages:", pdf.numPages);
+            
+            let fullText = '';
+            
+            // Limit to first 5 pages for speed
+            const maxPages = Math.min(5, pdf.numPages);
+            console.log(`Extracting text from ${maxPages} pages...`);
+            
+            for (let i = 1; i <= maxPages; i++) {
+              console.log(`Processing page ${i}...`);
+              const page = await pdf.getPage(i);
+              const textContent = await page.getTextContent();
+              const pageText = textContent.items.map(item => item.str).join(' ');
+              fullText += pageText + ' ';
+              
+              // Stop if we have enough text (5000+ chars)
+              if (fullText.length > 5000) {
+                console.log("Enough text extracted, stopping...");
+                break;
+              }
+            }
+            
+            textContent = fullText.trim();
+            console.log("PDF processing complete. Extracted chars:", textContent.length);
+            
+          } catch (pdfError) {
+            console.error("PDF processing error:", pdfError);
+            throw new Error("Failed to process PDF file. Please copy and paste the text instead.");
+          }
+        } else if (file.type.startsWith('text/')) {
+          // Handle text files
+          textContent = await file.text();
+        } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+          // Handle Word documents - for now, ask user to copy/paste
+          throw new Error("Word documents not yet supported. Please copy and paste the text content instead.");
+        } else {
+          throw new Error("File type not supported. Please use PDF or text files, or paste the text content.");
+        }
+      }
+
+      if (!textContent || textContent.trim().length < 10) {
+        throw new Error("Need more text to analyze (at least 10 characters)");
+      }
+
+      console.log("Analyzing text frontend:", textContent.substring(0, 100));
+      
+      // Use frontend analysis from imported function
+      const result = analyzeBrief(textContent);
+      
+      console.log("Frontend analysis result:", result);
+      setResp(result);
+      
+      // Auto-apply after a short delay to ensure state is updated
+      setTimeout(() => {
+        autoApply(result);
+      }, 100);
+      
+    } catch (e) {
+      console.error("Frontend analysis error:", e);
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+  return (
+    <div className="flex flex-col">
+      {/* SMART INTAKE SECTION with left-right layout like intro */}
+      <div className="flex flex-col lg:flex-row items-center gap-12">
+        {/* LEFT TEXT - Description and explanation */}
+        <div className="w-full lg:w-1/2 text-center sm:text-left max-w-[650px] mx-auto">
+          <p className="text-sm font-medium text-[#6f655c] uppercase mb-3">
+            Optional AI-powered pre-fill
+          </p>
+          <h2 className="text-3xl sm:text-4xl font-bold text-[#2d2a26] leading-tight mb-6">
+            Smart Input Assistant
+          </h2>
+          <p className="text-[#2d2a26] text-base sm:text-lg leading-relaxed mb-8">
+            Upload your treatment, brief, or paste project details, and our AI will analyze the content 
+            to suggest production types, crew requirements, shoot days, and budget estimates. This saves 
+            time by pre-filling the form based on your specific project needs.
+          </p>
+          
+          <div className="grid grid-cols-1 gap-6 text-[#2d2a26] mb-8">
+            <div className="flex items-center justify-center sm:justify-start">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white flex items-center justify-center mr-3 sm:mr-4 border border-[#eeebe7] flex-shrink-0 shadow-sm">
+                <Brain className="h-5 w-5 text-[#6f655c]" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Heuristic Analysis</h3>
+                <p className="text-sm text-[#6f655c]">Uses pattern matching and keyword detection to identify production requirements</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-center sm:justify-start">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white flex items-center justify-center mr-3 sm:mr-4 border border-[#eeebe7] flex-shrink-0 shadow-sm">
+                <span className="text-lg sm:text-xl">⚡</span>
+              </div>
+              <div className="text-left">
+                <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Fast & Reliable</h3>
+                <p className="text-sm text-[#6f655c]">Instant suggestions based on industry standards and production patterns</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT INPUT SECTION */}
+        <div className="w-full lg:w-1/2 bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-[#eeebe7]">
+          <div className="space-y-6">
+            {/* File upload */}
+            <div className="space-y-4">
+              <label className="block">
+                <span className="text-sm font-medium text-[#6f655c] mb-2 block">
+                  Upload document
+                </span>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.txt"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <div className="bg-[#fbfaf8] rounded-xl p-4 border-2 border-dashed border-[#eeebe7] hover:border-[#47403a] transition-colors text-center">
+                    <Upload className="h-8 w-8 text-[#6f655c] mx-auto mb-2" />
+                    <p className="text-[#6f655c] text-sm">
+                      {file ? file.name : "PDF, Word or text file"}
+                    </p>
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            {/* Text input */}
+            <div className="space-y-4">
+              <label className="block">
+                <span className="text-sm font-medium text-[#6f655c] mb-2 block">
+                  Or paste project details
+                </span>
+                <textarea
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  rows={6}
+                  placeholder="Synopsis, schedule, locations, special requirements..."
+                  className="w-full bg-[#fbfaf8] rounded-xl p-4 border border-[#eeebe7] text-[#2d2a26] placeholder-[#a39b92] resize-none"
+                />
+              </label>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleSuggest}
+                disabled={loading || (!file && text.trim().length < 40)}
+                className="w-full flex justify-center items-center gap-2 bg-[#47403a] text-white py-3 px-6 rounded-xl hover:bg-[#35302b] transition-colors disabled:opacity-60"
+              >
+                {loading ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291z"></path>
+                    </svg>
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Brain className="h-5 w-5" />
+                    Analyze & suggest
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={onContinue}
+                className="w-full flex justify-center items-center gap-2 bg-[#f8f7f5] text-[#2d2a26] py-3 px-6 rounded-xl hover:bg-[#f1f0ee] transition-colors"
+              >
+                Continue manually
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Auto-applying results */}
+            {resp && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
+                  <h3 className="font-semibold text-green-800">
+                    Analysis Complete - Applying suggestions...
+                  </h3>
+                </div>
+                <div className="text-sm text-green-700">
+                  <p>✓ Found: {(resp.suggestions.productionTypes || []).join(", ") || "—"}</p>
+                  <p>✓ Services: {(resp.suggestions.serviceRequirements || []).join(", ") || "—"}</p>
+                  <p>✓ Budget estimate: {resp.suggestions.budgetNOK?.toLocaleString("no-NO")} NOK</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Tooltip component
 const Tooltip = ({ content, children, delay = 1000 }) => {
@@ -111,14 +373,14 @@ const BudgetCalculator = () => {
     documentary: "Documentary: Smaller team, flexible setup. Often an add-on to a film shoot—and yes, someone will inevitably suggest 'handheld for authenticity.'",
     commercial: "Commercial: Higher demands on crew and lighting. Everything looks clean and intentional.",
     car: "Car shoot: Road blocks, more logistics, and shiny clients who will never be cold.",
-    fashion: "Fashion: Styling, makeup, and perfectly curated locations. We have a studio, but let's be honest—it’s mostly for coffee breaks.",
+    fashion: "Fashion: Styling, makeup, and perfectly curated locations. We have a studio, but let's be honest—it's mostly for coffee breaks.",
     plates: "Plates: Drive-by or pass-by shots for VFX, usually with a light crew.",
     music: "Music video: Often an add-on to film. Creative demands, unpredictable hours, and the occasional 'can we set this on fire?' request.",
     fixer: "Fixer: Local facilitation only—not a full crew. Think 'your friendly guide who knows a guy.'",
     "full-crew": "Full service: Complete crew, production, and logistics.",
     "tech-equipment": "Camera, lighting, grip packages, and technicians.",
     creatives: "Adds on a DOP and for bigger productions, a director. Works well for remote shoots or if you just want us to make some magic.",
-    scout: "Location scouting: Locations move and change, so even with a big database it’s worth getting out there.",
+    scout: "Location scouting: Locations move and change, so even with a big database it's worth getting out there.",
     postproduction: "Post-production: Editing, grading, and sound—where we fix it in post.",
     "local-talent": "Local talent: Casting of performers and extras—the friendly faces that make scenes feel genuine.",
     "remote-shoot": "Remote filming: Extra technical setup so you can direct from your sofa, coffee in hand."
@@ -449,6 +711,32 @@ const BudgetCalculator = () => {
     }
   };
 
+  // Handle applying smart intake suggestions
+  const handleSmartIntakeApply = (suggestions) => {
+    setKeywords(suggestions.keywords);
+    setEquipment(suggestions.equipment);
+    setDaysInOslo(suggestions.daysInOslo);
+    setDaysOutOfOslo(suggestions.daysOutOfOslo);
+    setLocations(suggestions.locations);
+    
+    // Set budget if provided (convert from NOK if needed)
+    if (suggestions.budgetNOK > 0) {
+      if (currency === 'NOK') {
+        setBudget(suggestions.budgetNOK);
+      } else {
+        setBudget(Math.round(suggestions.budgetNOK * EXCHANGE_RATES[currency]));
+      }
+    }
+    
+    // Move to budget step
+    handleStepChange(3);
+  };
+
+  // Handle continuing from smart intake
+  const handleSmartIntakeContinue = () => {
+    handleStepChange(3);
+  };
+
   // Validate form in real time
   const validateFields = () => {
     if (!touchedFields.submit) return true;
@@ -768,6 +1056,7 @@ const BudgetCalculator = () => {
                 setDaysInOslo(0);
                 setDaysOutOfOslo(0);
                 setLocations(0);
+                setStep(1);
                 // We keep title, companyName and email as requested
                 setErrors({});
                 setTouchedFields({});
@@ -839,12 +1128,12 @@ const BudgetCalculator = () => {
       
       {/* Logo at the top */}
       <div className="pt-3 sm:pt-6 pb-2 sm:pb-3">
-  <div className="flex justify-center">
-    <div className="h-14 sm:h-16 w-14 sm:w-16 flex items-center justify-center">
-      <img src={LogoCalc} alt="Line.Calc Logo" className="h-6 sm:h-8" />
-    </div>
-  </div>
-</div>
+        <div className="flex justify-center">
+          <div className="h-14 sm:h-16 w-14 sm:w-16 flex items-center justify-center">
+            <img src={LogoCalc} alt="Line.Calc Logo" className="h-6 sm:h-8" />
+          </div>
+        </div>
+      </div>
       
       {/* Main content area */}
       <div className="relative flex flex-col flex-grow justify-start mt-8 sm:mt-10">
@@ -902,8 +1191,16 @@ const BudgetCalculator = () => {
               </div>
             )}
 
-            {/* STEP 2 - CALCULATOR */}
+            {/* STEP 2 - SMART INTAKE */}
             {step === 2 && (
+              <SmartIntake 
+                onApply={handleSmartIntakeApply}
+                onContinue={handleSmartIntakeContinue}
+              />
+            )}
+
+            {/* STEP 3 - CALCULATOR */}
+            {step === 3 && (
               <div className="flex flex-col lg:flex-row gap-8 lg:gap-6 px-1">
                 {/* Left side - Basic info */}
                 <div className="w-full lg:w-5/12 space-y-4 flex flex-col justify-center">
@@ -1305,44 +1602,53 @@ const BudgetCalculator = () => {
 
       {/* Fixed navigation at the bottom with logo */}
       <div className="fixed bottom-0 left-0 right-0 z-10">
-  <div className="pt-4 pb-6 shadow-md sm:shadow-none sm:bg-transparent sm:backdrop-blur-none bg-[#f8f7f5]/80 backdrop-blur-md transition-all">
-    <div className="flex flex-col items-center">
-      <div className="nav-pills flex w-full max-w-xs h-12 bg-white rounded-full shadow-sm relative border border-[#eeebe7] mb-3">
-        <div 
-          className="nav-pill-indicator absolute top-1 bottom-1 bg-[#47403a] rounded-full transition-all duration-200 ease-in-out"
-          style={{ 
-            width: 'calc(50% - 6px)',
-            left: step === 2 ? 'calc(50% + 3px)' : '3px',
-          }}
-        ></div>
+        <div className="pt-4 pb-6 shadow-md sm:shadow-none sm:bg-transparent sm:backdrop-blur-none bg-[#f8f7f5]/80 backdrop-blur-md transition-all">
+          <div className="flex flex-col items-center">
+            <div className="nav-pills flex w-full max-w-sm h-12 bg-white rounded-full shadow-sm relative border border-[#eeebe7] mb-3">
+              <div 
+                className="nav-pill-indicator absolute top-1 bottom-1 bg-[#47403a] rounded-full transition-all duration-200 ease-in-out"
+                style={{ 
+                  width: 'calc(33.33% - 4px)',
+                  left: step === 1 ? '2px' : step === 2 ? 'calc(33.33% + 2px)' : 'calc(66.66% + 2px)',
+                }}
+              ></div>
 
-        <button 
-          onClick={() => handleStepChange(1)}
-          className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
-        >
-          <span className={`font-medium text-sm transition-colors duration-200 ${step === 1 ? 'text-white' : 'text-[#6f655c]'}`}>
-            Info
-          </span>
-        </button>
+              <button 
+                onClick={() => handleStepChange(1)}
+                className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
+              >
+                <span className={`font-medium text-sm transition-colors duration-200 ${step === 1 ? 'text-white' : 'text-[#6f655c]'}`}>
+                  Info
+                </span>
+              </button>
 
-        <button 
-          onClick={() => handleStepChange(2)}
-          className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
-        >
-          <span className={`font-medium text-sm transition-colors duration-200 ${step === 2 ? 'text-white' : 'text-[#6f655c]'}`}>
-            Budget
-          </span>
-        </button>
+              <button 
+                onClick={() => handleStepChange(2)}
+                className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
+              >
+                <span className={`font-medium text-sm transition-colors duration-200 ${step === 2 ? 'text-white' : 'text-[#6f655c]'}`}>
+                  Smart
+                </span>
+              </button>
+
+              <button 
+                onClick={() => handleStepChange(3)}
+                className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
+              >
+                <span className={`font-medium text-sm transition-colors duration-200 ${step === 3 ? 'text-white' : 'text-[#6f655c]'}`}>
+                  Budget
+                </span>
+              </button>
+            </div>
+
+            <div className="w-10 sm:w-14 mt-4">
+              <a href="https://www.line.productions/" target="_blank" rel="noopener noreferrer">
+                <img src={Logo} alt="Line.Production Logo" className="w-full" />
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div className="w-10 sm:w-14 mt-4">
-        <a href="https://www.line.productions/" target="_blank" rel="noopener noreferrer">
-          <img src={Logo} alt="Line.Production Logo" className="w-full" />
-        </a>
-      </div>
-    </div>
-  </div>
-</div>
     </div>
   );
 };
