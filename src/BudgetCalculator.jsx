@@ -10,16 +10,16 @@ import Work3 from './assets/Bilder/Work 3.png';
 import Work4 from './assets/Bilder/Work 4.png';
 import Work5 from './assets/Bilder/Work 5.png';
 
-// Import currency utilities
-import { formatCurrency, EXCHANGE_RATES } from './currency-utils';
-
 // Import heuristic analysis
 import { analyzeBrief } from './utils/heuristicAnalysis.js';
+
+// Import currency utilities
+import { formatCurrency, EXCHANGE_RATES } from './currency-utils';
 
 // Create an array of all images
 const images = [Work1, Work2, Work3, Work4, Work5];
 
-// Smart Intake Component
+// Updated SmartIntake Component that works with new heuristicAnalysis.js
 const SmartIntake = ({ onApply, onContinue }) => {
   const [file, setFile] = useState(null);
   const [text, setText] = useState("");
@@ -27,15 +27,68 @@ const SmartIntake = ({ onApply, onContinue }) => {
   const [resp, setResp] = useState(null);
   const [error, setError] = useState("");
 
-  // Auto-apply function that triggers after getting results
+  // Auto-apply function updated for new structure
   const autoApply = (result) => {
     const s = result.suggestions;
+    
+    // Build keywords array from new structure
+    const keywords = [];
+    
+    // Add production type
+    if (s.productionType) {
+      keywords.push(s.productionType);
+    }
+    
+    // Add crew type
+    if (s.crewType === 'fullCrew') {
+      keywords.push('full-crew');
+    } else if (s.crewType === 'fixer') {
+      keywords.push('fixer');
+    }
+    
+    // Add creatives if included
+    if (s.includeCreatives) {
+      keywords.push('creatives');
+    }
+    
+    // Add scout if included
+    if (s.includeScout) {
+      keywords.push('scout');
+    }
+    
+    // Check if tech-equipment should be added
+    const techEquipmentTypes = ['drone', 'steadicam', 'jib', 'underwater', 'specialized', 'roadblock', 'lowloader'];
+    const hasTechEquipment = s.equipment.some(item => 
+      techEquipmentTypes.includes(item.type)
+    );
+    if (hasTechEquipment) {
+      keywords.push('tech-equipment');
+    }
+    
+    // Map equipment - only UI-supported types
+    const mappedEquipment = [];
+    s.equipment.forEach(item => {
+      if (item.type === 'drone') {
+        mappedEquipment.push({
+          type: 'Drone',
+          days: Math.max(1, item.days)
+        });
+      } else if (item.type === 'roadblock') {
+        mappedEquipment.push({
+          type: 'Road block',
+          days: Math.max(1, item.days)
+        });
+      } else if (item.type === 'lowloader') {
+        mappedEquipment.push({
+          type: 'Lowloader',
+          days: Math.max(1, item.days)
+        });
+      }
+    });
+    
     onApply({
-      keywords: [
-        ...(s.productionTypes || []),
-        ...(s.serviceRequirements || []),
-      ],
-      equipment: s.equipment || [],
+      keywords: keywords,
+      equipment: mappedEquipment,
       daysInOslo: s.daysInOslo ?? 0,
       daysOutOfOslo: s.daysOutOfOslo ?? 0,
       locations: s.locations ?? 1,
@@ -122,10 +175,12 @@ const SmartIntake = ({ onApply, onContinue }) => {
       console.log("Frontend analysis result:", result);
       setResp(result);
       
-      // Auto-apply after a short delay to ensure state is updated
-      setTimeout(() => {
-        autoApply(result);
-      }, 100);
+      // Auto-apply if confidence is high enough (>= 0.75)
+      if (result.confidence >= 0.75) {
+        setTimeout(() => {
+          autoApply(result);
+        }, 100);
+      }
       
     } catch (e) {
       console.error("Frontend analysis error:", e);
@@ -134,6 +189,7 @@ const SmartIntake = ({ onApply, onContinue }) => {
       setLoading(false);
     }
   }
+
   return (
     <div className="flex flex-col">
       {/* SMART INTAKE SECTION with left-right layout like intro */}
@@ -255,20 +311,34 @@ const SmartIntake = ({ onApply, onContinue }) => {
               </div>
             )}
 
-            {/* Auto-applying results */}
+            {/* Auto-applying results - Updated display for new structure */}
             {resp && (
               <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
                   <h3 className="font-semibold text-green-800">
-                    Analysis Complete - Applying suggestions...
+                    {resp.confidence >= 0.75 
+                      ? 'Analysis Complete - Applying suggestions...'
+                      : 'Analysis Complete - Review suggestions'}
                   </h3>
                 </div>
                 <div className="text-sm text-green-700">
-                  <p>✓ Found: {(resp.suggestions.productionTypes || []).join(", ") || "—"}</p>
-                  <p>✓ Services: {(resp.suggestions.serviceRequirements || []).join(", ") || "—"}</p>
+                  <p>✓ Production type: {resp.suggestions.productionType || "–"}</p>
+                  <p>✓ Crew: {resp.suggestions.crewType === 'fullCrew' ? 'Full crew' : 'Fixer'}</p>
+                  <p>✓ Days: {resp.suggestions.daysInOslo} in Oslo, {resp.suggestions.daysOutOfOslo} outside</p>
                   <p>✓ Budget estimate: {resp.suggestions.budgetNOK?.toLocaleString("no-NO")} NOK</p>
+                  <p className="text-xs mt-1 italic">Confidence: {Math.round(resp.confidence * 100)}%</p>
                 </div>
+                
+                {/* Manual apply button if confidence is low */}
+                {resp.confidence < 0.75 && (
+                  <button
+                    onClick={() => autoApply(resp)}
+                    className="mt-3 px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                  >
+                    Apply suggestions
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1636,7 +1706,7 @@ const BudgetCalculator = () => {
                 className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
               >
                 <span className={`font-medium text-sm transition-colors duration-200 ${step === 3 ? 'text-white' : 'text-[#6f655c]'}`}>
-                  Budget
+                  Inputs
                 </span>
               </button>
             </div>
