@@ -1140,12 +1140,12 @@ const BudgetCalculator = () => {
             )}
 
             {/* STEP 2 - SMART INTAKE */}
-            {step === 2 && (
-              <SmartIntake 
-                onApply={handleSmartIntakeApply}
-                onContinue={handleSmartIntakeContinue}
-              />
-            )}
+            <div className={step === 2 ? 'block' : 'hidden'}>
+  <SmartIntake 
+    onApply={handleSmartIntakeApply}
+    onContinue={handleSmartIntakeContinue}
+  />
+</div>
 
             {/* STEP 3 - CALCULATOR */}
             {step === 3 && (
@@ -1549,54 +1549,65 @@ const BudgetCalculator = () => {
       </div>
 
       {/* Fixed navigation at the bottom with logo */}
-      <div className="fixed bottom-0 left-0 right-0 z-10">
-        <div className="pt-4 pb-6 shadow-md sm:shadow-none sm:bg-transparent sm:backdrop-blur-none bg-[#f8f7f5]/80 backdrop-blur-md transition-all">
-          <div className="flex flex-col items-center">
-          <div className="nav-pills flex w-full max-w-[450px] h-12 bg-white rounded-full shadow-sm relative border border-[#eeebe7] mb-3">
-              <div 
-                className="nav-pill-indicator absolute top-1.5 bottom-1.5 bg-[#47403a] rounded-full transition-all duration-200 ease-in-out"
-                style={{ 
-                  width: 'calc(33.33% - 4px)',
-                  left: step === 1 ? '2px' : step === 2 ? 'calc(33.33% + 2px)' : 'calc(66.66% + 2px)',
-                }}
-              ></div>
+<div className="fixed bottom-0 left-0 right-0 z-10">
+  <div className="pt-4 pb-6 shadow-md sm:shadow-none sm:bg-transparent sm:backdrop-blur-none bg-[#f8f7f5]/80 backdrop-blur-md transition-all">
+    <div className="flex flex-col items-center">
 
-              <button 
-                onClick={() => handleStepChange(1)}
-                className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
-              >
-                <span className={`font-medium text-sm transition-colors duration-200 ${step === 1 ? 'text-white' : 'text-[#6f655c]'}`}>
-                  Info
-                </span>
-              </button>
+{/* Pills (narrow, equal 2px border all around) */}
+<div className="nav-pills relative flex w-full max-w-[450px] h-12 bg-white rounded-full shadow-sm border border-[#eeebe7] mb-3 p-[2px] overflow-hidden">
+  {/* Indicator */}
+  <div
+    className="absolute top-[2px] bottom-[2px] left-[2px] rounded-full bg-[#47403a] transition-transform duration-200 ease-in-out"
+    style={{
+      width: 'calc((100% - 4px) / 3)',
+      transform:
+        step === 1 ? 'translateX(0%)' :
+        step === 2 ? 'translateX(100%)' :
+                      'translateX(200%)'
+    }}
+  />
 
-              <button 
-                onClick={() => handleStepChange(2)}
-                className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
-              >
-                <span className={`font-medium text-sm transition-colors duration-200 ${step === 2 ? 'text-white' : 'text-[#6f655c]'}`}>
-                  Smart
-                </span>
-              </button>
+  {/* Buttons */}
+  <div className="relative z-10 flex h-full w-full">
+    <button
+      onClick={() => handleStepChange(1)}
+      className="flex-1 h-full rounded-full flex items-center justify-center"
+    >
+      <span className={`font-medium text-sm transition-colors duration-200 ${step === 1 ? 'text-white' : 'text-[#6f655c]'}`}>
+        Info
+      </span>
+    </button>
 
-              <button 
-                onClick={() => handleStepChange(3)}
-                className="z-10 flex-1 h-full rounded-full flex items-center justify-center"
-              >
-                <span className={`font-medium text-sm transition-colors duration-200 ${step === 3 ? 'text-white' : 'text-[#6f655c]'}`}>
-                  Inputs
-                </span>
-              </button>
-            </div>
+    <button
+      onClick={() => handleStepChange(2)}
+      className="flex-1 h-full rounded-full flex items-center justify-center"
+    >
+      <span className={`font-medium text-sm transition-colors duration-200 ${step === 2 ? 'text-white' : 'text-[#6f655c]'}`}>
+        Smart
+      </span>
+    </button>
 
-            <div className="w-10 sm:w-14 mt-4">
-              <a href="https://www.line.productions/" target="_blank" rel="noopener noreferrer">
-                <img src={Logo} alt="Line.Production Logo" className="w-full" />
-              </a>
-            </div>
-          </div>
-        </div>
+    <button
+      onClick={() => handleStepChange(3)}
+      className="flex-1 h-full rounded-full flex items-center justify-center"
+    >
+      <span className={`font-medium text-sm transition-colors duration-200 ${step === 3 ? 'text-white' : 'text-[#6f655c]'}`}>
+        Inputs
+      </span>
+    </button>
+  </div>
+</div>
+
+      {/* Logo */}
+      <div className="w-10 sm:w-14 mt-4">
+        <a href="https://www.line.productions/" target="_blank" rel="noopener noreferrer">
+          <img src={Logo} alt="Line.Production Logo" className="w-full" />
+        </a>
       </div>
+
+    </div>
+  </div>
+</div>
     </div>
   );
 };
