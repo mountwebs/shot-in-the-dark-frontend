@@ -1029,7 +1029,7 @@ const BudgetCalculator = () => {
   }
 
   return (
-    <div className="budget-calculator bg-[#f8f7f5] min-h-screen min-w-[320px] flex flex-col pb-32">
+    <div className="budget-calculator bg-[#f8f7f5] min-h-screen min-w-[320px] flex flex-col pb-28">
       <style jsx>{`
         .slide-container {
           transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
@@ -1075,17 +1075,17 @@ const BudgetCalculator = () => {
       `}</style>
       
       {/* Logo at the top */}
-      <div className="pt-3 sm:pt-6 pb-2 sm:pb-3">
-        <div className="flex justify-center">
-          <div className="h-14 sm:h-16 w-14 sm:w-16 flex items-center justify-center">
-            <img src={LogoCalc} alt="Line.Calc Logo" className="h-6 sm:h-8" />
-          </div>
-        </div>
-      </div>
+      <header className="shrink-0 py-3 sm:py-4">
+  <div className="flex justify-center">
+    <div className="h-14 sm:h-16 w-14 sm:w-16 flex items-center justify-center">
+      <img src={LogoCalc} alt="Line.Calc Logo" className="h-6 sm:h-8" />
+    </div>
+  </div>
+</header>
       
       {/* Main content area */}
-      <div className="relative flex flex-col flex-grow justify-start mt-8 sm:mt-10">
-        <div className="max-w-6xl w-full mx-auto px-6">
+      <div className="flex-1 flex items-center justify-center px-6">
+  <div className="max-w-6xl w-full mx-auto">
           <div className={`slide-container ${slideDirection ? `slide-${slideDirection}` : ''}`}>
             {/* STEP 1 – INTRO SLIDE */}
             {step === 1 && (
