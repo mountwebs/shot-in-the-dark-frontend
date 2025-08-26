@@ -19,75 +19,41 @@ import { formatCurrency, EXCHANGE_RATES } from './currency-utils';
 // Create an array of all images
 const images = [Work1, Work2, Work3, Work4, Work5];
 
-// Updated SmartIntake Component that works with new heuristicAnalysis.js
+// Smart Intake Component (TEXT-ONLY)
 const SmartIntake = ({ onApply, onContinue }) => {
-  const [file, setFile] = useState(null);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [resp, setResp] = useState(null);
   const [error, setError] = useState("");
 
-  // Auto-apply function updated for new structure
+  // Auto-apply (samme mapping som du har i dag)
   const autoApply = (result) => {
-    const s = result.suggestions;
-    
-    // Build keywords array from new structure
+    const s = result.suggestions || {};
     const keywords = [];
-    
-    // Add production type
-    if (s.productionType) {
-      keywords.push(s.productionType);
-    }
-    
-    // Add crew type
-    if (s.crewType === 'fullCrew') {
-      keywords.push('full-crew');
-    } else if (s.crewType === 'fixer') {
-      keywords.push('fixer');
-    }
-    
-    // Add creatives if included
-    if (s.includeCreatives) {
-      keywords.push('creatives');
-    }
-    
-    // Add scout if included
-    if (s.includeScout) {
-      keywords.push('scout');
-    }
-    
-    // Check if tech-equipment should be added
-    const techEquipmentTypes = ['drone', 'steadicam', 'jib', 'underwater', 'specialized', 'roadblock', 'lowloader'];
-    const hasTechEquipment = s.equipment.some(item => 
-      techEquipmentTypes.includes(item.type)
-    );
-    if (hasTechEquipment) {
-      keywords.push('tech-equipment');
-    }
-    
-    // Map equipment - only UI-supported types
+
+    if (s.productionType) keywords.push(s.productionType);
+    if (s.crewType === 'fullCrew') keywords.push('full-crew');
+    else if (s.crewType === 'fixer') keywords.push('fixer');
+    if (s.includeCreatives) keywords.push('creatives');
+    if (s.includeScout) keywords.push('scout');
+
+    const techEquipmentTypes = ['drone','steadicam','jib','underwater','specialized','roadblock','lowloader'];
+    const hasTechEquipment = Array.isArray(s.equipment) && s.equipment.some(item => techEquipmentTypes.includes(item.type));
+    if (hasTechEquipment) keywords.push('tech-equipment');
+
     const mappedEquipment = [];
-    s.equipment.forEach(item => {
+    (s.equipment || []).forEach(item => {
       if (item.type === 'drone') {
-        mappedEquipment.push({
-          type: 'Drone',
-          days: Math.max(1, item.days)
-        });
+        mappedEquipment.push({ type: 'Drone', days: Math.max(1, item.days) });
       } else if (item.type === 'roadblock') {
-        mappedEquipment.push({
-          type: 'Road block',
-          days: Math.max(1, item.days)
-        });
+        mappedEquipment.push({ type: 'Road block', days: Math.max(1, item.days) });
       } else if (item.type === 'lowloader') {
-        mappedEquipment.push({
-          type: 'Lowloader',
-          days: Math.max(1, item.days)
-        });
+        mappedEquipment.push({ type: 'Lowloader', days: Math.max(1, item.days) });
       }
     });
-    
+
     onApply({
-      keywords: keywords,
+      keywords,
       equipment: mappedEquipment,
       daysInOslo: s.daysInOslo ?? 0,
       daysOutOfOslo: s.daysOutOfOslo ?? 0,
@@ -96,95 +62,25 @@ const SmartIntake = ({ onApply, onContinue }) => {
     });
   };
 
-  // Handle suggest function
   async function handleSuggest() {
-    setLoading(true); 
-    setError(""); 
+    setLoading(true);
+    setError("");
     setResp(null);
-    
+
     try {
-      let textContent = text;
-      
-      if (file) {
-        console.log("Processing file:", file.name, "Type:", file.type);
-        
-        if (file.type === 'application/pdf') {
-          // Handle PDF files using PDF.js
-          try {
-            console.log("Starting PDF processing...");
-            const arrayBuffer = await file.arrayBuffer();
-            console.log("PDF arrayBuffer created, size:", arrayBuffer.byteLength);
-            
-            // Use PDF.js to extract text
-            const pdfjsLib = window.pdfjsLib;
-            if (!pdfjsLib) {
-              throw new Error("PDF.js library not loaded. Please refresh the page and try again.");
-            }
-            
-            console.log("Loading PDF document...");
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-            console.log("PDF loaded, pages:", pdf.numPages);
-            
-            let fullText = '';
-            
-            // Limit to first 5 pages for speed
-            const maxPages = Math.min(5, pdf.numPages);
-            console.log(`Extracting text from ${maxPages} pages...`);
-            
-            for (let i = 1; i <= maxPages; i++) {
-              console.log(`Processing page ${i}...`);
-              const page = await pdf.getPage(i);
-              const textContent = await page.getTextContent();
-              const pageText = textContent.items.map(item => item.str).join(' ');
-              fullText += pageText + ' ';
-              
-              // Stop if we have enough text (5000+ chars)
-              if (fullText.length > 5000) {
-                console.log("Enough text extracted, stopping...");
-                break;
-              }
-            }
-            
-            textContent = fullText.trim();
-            console.log("PDF processing complete. Extracted chars:", textContent.length);
-            
-          } catch (pdfError) {
-            console.error("PDF processing error:", pdfError);
-            throw new Error("Failed to process PDF file. Please copy and paste the text instead.");
-          }
-        } else if (file.type.startsWith('text/')) {
-          // Handle text files
-          textContent = await file.text();
-        } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-          // Handle Word documents - for now, ask user to copy/paste
-          throw new Error("Word documents not yet supported. Please copy and paste the text content instead.");
-        } else {
-          throw new Error("File type not supported. Please use PDF or text files, or paste the text content.");
-        }
+      const textContent = (text || "").trim();
+      if (textContent.length < 40) {
+        throw new Error("Please paste at least 40 characters of project details.");
       }
 
-      if (!textContent || textContent.trim().length < 10) {
-        throw new Error("Need more text to analyze (at least 10 characters)");
-      }
-
-      console.log("Analyzing text frontend:", textContent.substring(0, 100));
-      
-      // Use frontend analysis from imported function
       const result = analyzeBrief(textContent);
-      
-      console.log("Frontend analysis result:", result);
       setResp(result);
-      
-      // Auto-apply if confidence is high enough (>= 0.75)
-      if (result.confidence >= 0.75) {
-        setTimeout(() => {
-          autoApply(result);
-        }, 100);
+
+      if ((result.confidence ?? 0) >= 0.75) {
+        setTimeout(() => { autoApply(result); }, 100);
       }
-      
     } catch (e) {
-      console.error("Frontend analysis error:", e);
-      setError(e.message);
+      setError(e.message || "Failed to analyze text.");
     } finally {
       setLoading(false);
     }
@@ -192,81 +88,64 @@ const SmartIntake = ({ onApply, onContinue }) => {
 
   return (
     <div className="flex flex-col">
-      {/* SMART INTAKE SECTION with left-right layout like intro */}
       <div className="flex flex-col lg:flex-row items-center gap-12">
-        {/* LEFT TEXT - Description and explanation */}
-        <div className="w-full lg:w-1/2 text-center sm:text-left max-w-[650px] mx-auto">
-          <p className="text-sm font-medium text-[#6f655c] uppercase mb-3">
-            Optional AI-powered pre-fill
-          </p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-[#2d2a26] leading-tight mb-6">
-            Smart Input Assistant
-          </h2>
-          <p className="text-[#2d2a26] text-base sm:text-lg leading-relaxed mb-8">
-            Upload your treatment, brief, or paste project details, and our AI will analyze the content 
-            to suggest production types, crew requirements, shoot days, and budget estimates. This saves 
-            time by pre-filling the form based on your specific project needs.
-          </p>
-          
-          <div className="grid grid-cols-1 gap-6 text-[#2d2a26] mb-8">
-            <div className="flex items-center justify-center sm:justify-start">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white flex items-center justify-center mr-3 sm:mr-4 border border-[#eeebe7] flex-shrink-0 shadow-sm">
-                <Brain className="h-5 w-5 text-[#6f655c]" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Heuristic Analysis</h3>
-                <p className="text-sm text-[#6f655c]">Uses pattern matching and keyword detection to identify production requirements</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-center sm:justify-start">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white flex items-center justify-center mr-3 sm:mr-4 border border-[#eeebe7] flex-shrink-0 shadow-sm">
-                <span className="text-lg sm:text-xl">⚡</span>
-              </div>
-              <div className="text-left">
-                <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Fast & Reliable</h3>
-                <p className="text-sm text-[#6f655c]">Instant suggestions based on industry standards and production patterns</p>
-              </div>
-            </div>
-          </div>
-        </div>
+{/* LEFT TEXT */}
+<div className="w-full lg:w-1/2 text-center sm:text-left max-w-[650px] mx-auto">
+  <p className="text-sm font-medium text-[#6f655c] uppercase mb-3">
+    Optional AI-assisted prefill
+  </p>
 
-        {/* RIGHT INPUT SECTION */}
+  <h2 className="text-3xl sm:text-4xl font-bold text-[#2d2a26] leading-tight mb-6">
+    Brief-to-Budget Assistant
+  </h2>
+
+  <p className="text-[#2d2a26] text-base sm:text-lg leading-relaxed mb-8">
+    Type or paste your project details. Our tool suggests production type, crew,
+    shoot days, locations, and a starting budget — and helps estimate CO₂ impact.
+    Nothing is uploaded until you submit.
+  </p>
+
+  <div className="grid grid-cols-1 gap-6 text-[#2d2a26] mb-8">
+    <div className="flex items-center justify-center sm:justify-start">
+      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white flex items-center justify-center mr-3 sm:mr-4 border border-[#eeebe7] flex-shrink-0 shadow-sm">
+        <Brain className="h-5 w-5 text-[#6f655c]" />
+      </div>
+      <div className="text-left">
+        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Heuristic Frontend</h3>
+        <p className="text-sm text-[#6f655c]">
+          Runs in your browser. Rule-based pattern matching and keyword detection provide instant, on-page suggestions.
+        </p>
+      </div>
+    </div>
+
+    <div className="flex items-center justify-center sm:justify-start">
+      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white flex items-center justify-center mr-3 sm:mr-4 border border-[#eeebe7] flex-shrink-0 shadow-sm">
+        <span className="text-lg sm:text-xl">⚡</span>
+      </div>
+      <div className="text-left">
+        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Backend Budget Engine</h3>
+        <p className="text-sm text-[#6f655c]">
+          On submit, your brief and selections become a structured prompt to refine the budget and CO₂ calculation for your project.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+        {/* RIGHT INPUT (TEXT ONLY) */}
         <div className="w-full lg:w-1/2 bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-[#eeebe7]">
           <div className="space-y-6">
-            {/* File upload */}
-            <div className="space-y-4">
-              <label className="block">
-                <span className="text-sm font-medium text-[#6f655c] mb-2 block">
-                  Upload document
-                </span>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx,.txt"
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                  <div className="bg-[#fbfaf8] rounded-xl p-4 border-2 border-dashed border-[#eeebe7] hover:border-[#47403a] transition-colors text-center">
-                    <Upload className="h-8 w-8 text-[#6f655c] mx-auto mb-2" />
-                    <p className="text-[#6f655c] text-sm">
-                      {file ? file.name : "PDF, Word or text file"}
-                    </p>
-                  </div>
-                </div>
-              </label>
-            </div>
-
             {/* Text input */}
             <div className="space-y-4">
               <label className="block">
                 <span className="text-sm font-medium text-[#6f655c] mb-2 block">
-                  Or paste project details
+                  Paste project details
                 </span>
                 <textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  rows={6}
-                  placeholder="Synopsis, schedule, locations, special requirements..."
+                  rows={8}
+                  placeholder="Synopsis, schedule, locations, special requirements…"
                   className="w-full bg-[#fbfaf8] rounded-xl p-4 border border-[#eeebe7] text-[#2d2a26] placeholder-[#a39b92] resize-none"
                 />
               </label>
@@ -276,7 +155,7 @@ const SmartIntake = ({ onApply, onContinue }) => {
             <div className="flex flex-col gap-3">
               <button
                 onClick={handleSuggest}
-                disabled={loading || (!file && text.trim().length < 40)}
+                disabled={loading || text.trim().length < 40}
                 className="w-full flex justify-center items-center gap-2 bg-[#47403a] text-white py-3 px-6 rounded-xl hover:bg-[#35302b] transition-colors disabled:opacity-60"
               >
                 {loading ? (
@@ -294,12 +173,12 @@ const SmartIntake = ({ onApply, onContinue }) => {
                   </>
                 )}
               </button>
-              
+
               <button
                 onClick={onContinue}
                 className="w-full flex justify-center items-center gap-2 bg-[#f8f7f5] text-[#2d2a26] py-3 px-6 rounded-xl hover:bg-[#f1f0ee] transition-colors"
               >
-                Continue manually
+                Continue without AI
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
@@ -311,26 +190,25 @@ const SmartIntake = ({ onApply, onContinue }) => {
               </div>
             )}
 
-            {/* Auto-applying results - Updated display for new structure */}
+            {/* Results / Preview */}
             {resp && (
               <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
                   <h3 className="font-semibold text-green-800">
-                    {resp.confidence >= 0.75 
+                    {resp.confidence >= 0.75
                       ? 'Analysis Complete - Applying suggestions...'
                       : 'Analysis Complete - Review suggestions'}
                   </h3>
                 </div>
                 <div className="text-sm text-green-700">
-                  <p>✓ Production type: {resp.suggestions.productionType || "–"}</p>
-                  <p>✓ Crew: {resp.suggestions.crewType === 'fullCrew' ? 'Full crew' : 'Fixer'}</p>
-                  <p>✓ Days: {resp.suggestions.daysInOslo} in Oslo, {resp.suggestions.daysOutOfOslo} outside</p>
-                  <p>✓ Budget estimate: {resp.suggestions.budgetNOK?.toLocaleString("no-NO")} NOK</p>
-                  <p className="text-xs mt-1 italic">Confidence: {Math.round(resp.confidence * 100)}%</p>
+                  <p>✓ Production type: {resp.suggestions?.productionType || "–"}</p>
+                  <p>✓ Crew: {resp.suggestions?.crewType === 'fullCrew' ? 'Full crew' : 'Fixer'}</p>
+                  <p>✓ Days: {resp.suggestions?.daysInOslo ?? 0} in Oslo, {resp.suggestions?.daysOutOfOslo ?? 0} outside</p>
+                  <p>✓ Budget estimate: {resp.suggestions?.budgetNOK?.toLocaleString("no-NO")} NOK</p>
+                  <p className="text-xs mt-1 italic">Confidence: {Math.round((resp.confidence ?? 0) * 100)}%</p>
                 </div>
-                
-                {/* Manual apply button if confidence is low */}
+
                 {resp.confidence < 0.75 && (
                   <button
                     onClick={() => autoApply(resp)}
@@ -1674,9 +1552,9 @@ const BudgetCalculator = () => {
       <div className="fixed bottom-0 left-0 right-0 z-10">
         <div className="pt-4 pb-6 shadow-md sm:shadow-none sm:bg-transparent sm:backdrop-blur-none bg-[#f8f7f5]/80 backdrop-blur-md transition-all">
           <div className="flex flex-col items-center">
-            <div className="nav-pills flex w-full max-w-sm h-12 bg-white rounded-full shadow-sm relative border border-[#eeebe7] mb-3">
+          <div className="nav-pills flex w-full max-w-[450px] h-12 bg-white rounded-full shadow-sm relative border border-[#eeebe7] mb-3">
               <div 
-                className="nav-pill-indicator absolute top-1 bottom-1 bg-[#47403a] rounded-full transition-all duration-200 ease-in-out"
+                className="nav-pill-indicator absolute top-1.5 bottom-1.5 bg-[#47403a] rounded-full transition-all duration-200 ease-in-out"
                 style={{ 
                   width: 'calc(33.33% - 4px)',
                   left: step === 1 ? '2px' : step === 2 ? 'calc(33.33% + 2px)' : 'calc(66.66% + 2px)',
