@@ -20,11 +20,16 @@ import { formatCurrency, EXCHANGE_RATES } from './currency-utils';
 const images = [Work1, Work2, Work3, Work4, Work5];
 
 // Smart Intake Component (TEXT-ONLY)
-const SmartIntake = ({ onApply, onContinue }) => {
-  const [text, setText] = useState("");
+const SmartIntake = ({ onApply, onContinue, initialText = "", onTextChange }) => {
+  const [text, setText] = useState(initialText);
   const [loading, setLoading] = useState(false);
   const [resp, setResp] = useState(null);
   const [error, setError] = useState("");
+
+  // keep local state in sync with parent
+  useEffect(() => {
+    setText(initialText || "");
+  }, [initialText]);
 
   // Auto-apply (samme mapping som du har i dag)
   const autoApply = (result) => {
@@ -123,7 +128,7 @@ const SmartIntake = ({ onApply, onContinue }) => {
       <div className="text-left">
         <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Step 2. Backend Budget Engine</h3>
         <p className="text-sm text-[#6f655c]">
-          Step 2. Regardless of the changes you do in the inputs the brief will be used to ajust the final budget using AI. 
+          Regardless of the changes you do in the inputs, the brief will be use AI to ajust the final budget to make it more precise. 
         </p>
       </div>
     </div>
@@ -140,12 +145,16 @@ const SmartIntake = ({ onApply, onContinue }) => {
                   Paste project details
                 </span>
                 <textarea
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  rows={8}
-                  placeholder="Synopsis, schedule, locations, special requirements…"
-                  className="w-full bg-[#fbfaf8] rounded-xl p-4 border border-[#eeebe7] text-[#2d2a26] placeholder-[#a39b92] resize-none"
-                />
+  value={text}
+  onChange={(e) => {
+    const v = e.target.value;
+    setText(v);
+    onTextChange?.(v); // notify parent if provided
+  }}
+  rows={8}
+  placeholder="Synopsis, schedule, locations, special requirements…"
+  className="w-full bg-[#fbfaf8] rounded-xl p-4 border border-[#eeebe7] text-[#2d2a26] placeholder-[#a39b92] resize-none"
+/>
               </label>
             </div>
 
@@ -173,12 +182,12 @@ const SmartIntake = ({ onApply, onContinue }) => {
               </button>
 
               <button
-                onClick={onContinue}
-                className="w-full flex justify-center items-center gap-2 bg-[#f8f7f5] text-[#2d2a26] py-3 px-6 rounded-xl hover:bg-[#f1f0ee] transition-colors"
-              >
-                Continue without AI
-                <ArrowRight className="h-4 w-4" />
-              </button>
+  onClick={() => onContinue?.(text)}
+  className="w-full flex justify-center items-center gap-2 bg-[#f8f7f5] text-[#2d2a26] py-3 px-6 rounded-XL hover:bg-[#f1f0ee] transition-colors"
+>
+  Continue
+  <ArrowRight className="h-4 w-4" />
+</button>
             </div>
 
             {/* Error */}
@@ -285,6 +294,7 @@ const Tooltip = ({ content, children, delay = 1000 }) => {
 const BudgetCalculator = () => {
   // Get a random image on component mount
   const [randomImage, setRandomImage] = useState('');
+  const [smartText, setSmartText] = useState('');
   
   useEffect(() => {
     // Select a random image from the imported images
@@ -901,13 +911,14 @@ const BudgetCalculator = () => {
       title,
       companyName,
       email,
-      budget: budgetInNOK,  // Always in NOK for calculations
-      currency: currency,   // User's selected currency (EUR, USD, etc) for display
+      budget: budgetInNOK,
+      currency,
       daysInOslo,
       daysOutOfOslo,
       locations,
       keywords,
-      equipment            // No need to map, already in correct format
+      equipment,
+      ...(smartText?.trim() ? { brief: smartText.trim() } : {}),
     };
 
     console.log("Submitting form data:", formData);
@@ -1099,8 +1110,8 @@ const BudgetCalculator = () => {
                       How to get your budget
                     </h2>
                     <p className="text-[#2d2a26] text-base sm:text-lg leading-relaxed mb-8">
-                      Enter your production details on the next slide and we will instantly generate a reliable
-                      budget estimate based on industry-standard costs and our expertise. The draft will be
+                      Write productions notes on the next slide, and clear inputs on the third. We will instantly generate a reliable
+                      budget estimate based on industry-standard costs, our expertise as well as some voluntary AI. The draft will be
                       sent directly to your email — and ours — for further review.
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-[#2d2a26] mb-8">
@@ -1114,7 +1125,7 @@ const BudgetCalculator = () => {
                         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white flex items-center justify-center mr-3 sm:mr-4 border border-[#eeebe7] flex-shrink-0 shadow-sm">
                           <span className="text-lg sm:text-xl">🌍</span>
                         </div>
-                        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26]">Focus on the why and where.</h3>
+                        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26]">Understand your own production.</h3>
                       </div>
                     </div>
                   </div>
@@ -1138,12 +1149,17 @@ const BudgetCalculator = () => {
             )}
 
             {/* STEP 2 - SMART INTAKE */}
-            <div className={step === 2 ? 'block' : 'hidden'}>
-  <SmartIntake 
-    onApply={handleSmartIntakeApply}
-    onContinue={handleSmartIntakeContinue}
-  />
-</div>
+            {step === 2 && (
+              <SmartIntake
+  onApply={handleSmartIntakeApply}
+  onContinue={(t) => { setSmartText(t); handleStepChange(3); }}
+  initialText={smartText}
+  onTextChange={setSmartText}
+/>
+  
+)}
+
+
 
             {/* STEP 3 - CALCULATOR */}
             {step === 3 && (
