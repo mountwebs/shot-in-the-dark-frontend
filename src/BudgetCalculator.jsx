@@ -1568,18 +1568,18 @@ const BudgetCalculator = () => {
     <div className="flex flex-col items-center">
 
 {/* Pills (narrow, equal 2px border all around) */}
-<div className="nav-pills relative flex w-full max-w-[450px] h-12 bg-white rounded-full shadow-sm border border-[#eeebe7] mb-3 p-[2px] overflow-hidden">
+<div className="nav-pills relative flex w-full max-w-[450px] h-12 bg-white rounded-full shadow-sm border border-[#eeebe7] mb-3 p-[6px] overflow-hidden">
   {/* Indicator */}
   <div
-    className="absolute top-[2px] bottom-[2px] left-[2px] rounded-full bg-[#47403a] transition-transform duration-200 ease-in-out"
-    style={{
-      width: 'calc((100% - 4px) / 3)',
-      transform:
-        step === 1 ? 'translateX(0%)' :
-        step === 2 ? 'translateX(100%)' :
-                      'translateX(200%)'
-    }}
-  />
+  className="absolute top-[6px] bottom-[6px] left-[6px] rounded-full bg-[#47403a] transition-transform duration-200 ease-in-out"
+  style={{
+    width: 'calc((100% - 12px) / 3)', // 12px = 2 * 6px padding
+    transform:
+      step === 1 ? 'translateX(0%)' :
+      step === 2 ? 'translateX(100%)' :
+                    'translateX(200%)'
+  }}
+/>
 
   {/* Buttons */}
   <div className="relative z-10 flex h-full w-full">
