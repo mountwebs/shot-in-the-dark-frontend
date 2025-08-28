@@ -96,13 +96,11 @@ const SmartIntake = ({ onApply, onContinue }) => {
   </p>
 
   <h2 className="text-3xl sm:text-4xl font-bold text-[#2d2a26] leading-tight mb-6">
-    Brief-to-Budget Assistant
+    Prompt Assistant
   </h2>
 
   <p className="text-[#2d2a26] text-base sm:text-lg leading-relaxed mb-8">
-    Type or paste your project details. Our tool suggests production type, crew,
-    shoot days, locations, and a starting budget — and helps estimate CO₂ impact.
-    Nothing is uploaded until you submit.
+  The prompt suggests production inputs, but it’s when you submit your brief — together with your edited inputs — that it becomes a structured prompt for our backend. There, we combine model output with hard-coded cost rules and local expertise. The result is precise and explainable, not solely model-driven.
   </p>
 
   <div className="grid grid-cols-1 gap-6 text-[#2d2a26] mb-8">
@@ -111,9 +109,9 @@ const SmartIntake = ({ onApply, onContinue }) => {
         <Brain className="h-5 w-5 text-[#6f655c]" />
       </div>
       <div className="text-left">
-        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Heuristic Frontend</h3>
+        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Step 1. Heuristic Frontend</h3>
         <p className="text-sm text-[#6f655c]">
-          Runs in your browser. Rule-based pattern matching and keyword detection provide instant, on-page suggestions.
+          The brief can help as a starting point for you inputs but whatever changes you amke will overright this. You don't need to go back to ajust the text.
         </p>
       </div>
     </div>
@@ -123,9 +121,9 @@ const SmartIntake = ({ onApply, onContinue }) => {
         <span className="text-lg sm:text-xl">⚡</span>
       </div>
       <div className="text-left">
-        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Backend Budget Engine</h3>
+        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Step 2. Backend Budget Engine</h3>
         <p className="text-sm text-[#6f655c]">
-          On submit, your brief and selections become a structured prompt to refine the budget and CO₂ calculation for your project.
+          Step 2. Regardless of the changes you do in the inputs the brief will be used to ajust the final budget using AI. 
         </p>
       </div>
     </div>
