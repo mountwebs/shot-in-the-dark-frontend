@@ -1,4 +1,4 @@
-// utils/heuristicAnalysis.js - Produksjonsanalyse for Norge v3.0
+// utils/heuristicAnalysis.js - Produksjonsanalyse for Norge v4.0 (scene-aware)
 
 /**
  * Konfigurasjonsobjekt for alle vekter, priser og multiplikatorer
@@ -65,8 +65,123 @@ const CONFIG = {
     high: 0.85,
     medium: 0.75,
     low: 0.5
+  },
+
+  // Scene-hint vekter (hvor sterkt scenebeskrivelser påvirker dagsetting)
+  sceneDays: {
+    interiorOsloHint: 1,     // typisk +1 dag i Oslo for interiør/studio
+    natureOutHintMin: 1,     // minst +1 dag utenfor Oslo for natur
+    natureOutHintMax: 3      // opptil +3 ved mange natur-ord
   }
 };
+
+// ------------------------------------------
+// GEO (lightweight gazetteer + distance logic)
+// ------------------------------------------
+const OSLO_COORD = { lat: 59.9139, lon: 10.7522 };
+
+// Minimal, extensible gazetteer. You can safely grow this list (or load it).
+// Each entry supports aliases to catch spelling variants.
+const GAZETTEER = [
+  { name: 'Oslo',        lat: 59.9139, lon: 10.7522, aliases: ['oslo', 'oslo area', 'osloområdet'] },
+  { name: 'Bergen',      lat: 60.39299, lon: 5.32415, aliases: ['bergen'] },
+  { name: 'Stavanger',   lat: 58.96998, lon: 5.73311, aliases: ['stavanger'] },
+  { name: 'Trondheim',   lat: 63.43049, lon: 10.39506, aliases: ['trondheim', 'trondhjem'] },
+  { name: 'Tromsø',      lat: 69.64920, lon: 18.95532, aliases: ['tromso', 'tromsø', 'tromsoe'] },
+  { name: 'Ålesund',     lat: 62.47223, lon: 6.14948, aliases: ['alesund', 'ålësund'] },
+  { name: 'Kristiansand',lat: 58.14671, lon: 7.99560, aliases: ['kristiansand'] },
+  { name: 'Bodø',        lat: 67.27999, lon: 14.40501, aliases: ['bodo', 'bodø', 'bodoe'] },
+  { name: 'Lofoten',     lat: 68.231,   lon: 13.938,  aliases: ['lofoten'] },
+  { name: 'Svalbard',    lat: 78.2232,  lon: 15.6469, aliases: ['svalbard', 'longyearbyen'] },
+  { name: 'Rjukan',      lat: 59.878,   lon: 8.593,   aliases: ['rjukan'] },
+  { name: 'Geiranger',   lat: 62.101,   lon: 7.205,   aliases: ['geiranger'] },
+  { name: 'Preikestolen',lat: 58.986,   lon: 6.190,   aliases: ['pulpit rock', 'preikestolen'] },
+  { name: 'Trolltunga',  lat: 60.124,   lon: 6.738,   aliases: ['trolltunga'] },
+  { name: 'Lillehammer', lat: 61.1153,  lon: 10.4662, aliases: ['lillehammer'] },
+  { name: 'Røros',       lat: 62.5746,  lon: 11.3841, aliases: ['roros', 'røros', 'roroes'] }
+];
+
+// Normalize: lowercase, strip accents/diacritics, tame nordic letters and punctuation.
+function normalizeName(s = '') {
+  return s
+    .toLowerCase()
+    .replace(/æ/g, 'ae').replace(/ø/g, 'o').replace(/å/g, 'aa')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s\-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const GAZ_INDEX = (() => {
+  const m = new Map();
+  GAZETTEER.forEach(p => {
+    const keys = [p.name, ...(p.aliases || [])]
+      .map(k => normalizeName(k))
+      .filter(Boolean);
+    keys.forEach(k => m.set(k, p));
+  });
+  return m;
+})();
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const toRad = (d) => d * Math.PI / 180;
+  const R = 6371; // km
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2) ** 2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+            Math.sin(dLon/2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Very lightweight place extraction:
+// 1) Normalize full text and scan for any gazetteer alias as whole-token substring.
+// 2) De-duplicate by main `name`.
+function findPlacesInText(rawText = '') {
+  const norm = ` ${normalizeName(rawText)} `;
+  const found = new Map();
+  GAZ_INDEX.forEach((place, key) => {
+    const needle = ` ${key} `;
+    if (norm.includes(needle)) {
+      found.set(place.name, place);
+    }
+  });
+  return Array.from(found.values());
+}
+
+// Turn places into Oslo/Out-of-Oslo day boosts purely from map distance.
+// - < 30km: Oslo vicinity (studio/office errands) ⇒ at least 1 Oslo day
+// - 30–250km: Day-trip plausible ⇒ +1 out-of-Oslo day
+// - 250–800km: Travel + shoot ⇒ +2 out-of-Oslo days
+// - > 800km: Remote/Arctic ⇒ +3 out-of-Oslo days
+function inferGeoDaysFromPlaces(rawText) {
+  const places = findPlacesInText(rawText);
+  if (!places.length) return { inBoost: 0, outBoost: 0, places: [], reasons: [] };
+
+  let inBoost = 0;
+  let outBoost = 0;
+  const reasons = [];
+
+  places.forEach(p => {
+    const d = haversineKm(OSLO_COORD.lat, OSLO_COORD.lon, p.lat, p.lon);
+    if (d < 30) {
+      inBoost = Math.max(inBoost, 1);
+      reasons.push(`${p.name} ~${Math.round(d)}km from Oslo ⇒ at least one Oslo day`);
+    } else if (d < 250) {
+      outBoost = Math.max(outBoost, 1);
+      reasons.push(`${p.name} ~${Math.round(d)}km ⇒ likely day trip (+1 out-of-Oslo day)`);
+    } else if (d < 800) {
+      outBoost = Math.max(outBoost, 2);
+      reasons.push(`${p.name} ~${Math.round(d)}km ⇒ travel + shoot (+2 out-of-Oslo days)`);
+    } else {
+      outBoost = Math.max(outBoost, 3);
+      reasons.push(`${p.name} ~${Math.round(d)}km (remote) ⇒ (+3 out-of-Oslo days)`);
+    }
+  });
+
+  return { inBoost, outBoost, places, reasons };
+}
 
 /**
  * Analyserer produksjonsbrief og returnerer strukturerte forslag
@@ -120,7 +235,59 @@ export function analyzeBrief(inputText) {
   const count = (regex) => (normalizedText.match(regex) || []).length;
   const matchesAny = (text, patterns) => patterns.some(pattern => pattern.test(text));
 
+  // ------------------------------
+  // SCENE / KONTEKST-DETEKSJON (NO + EN)
+  // ------------------------------
+  // Script-notationer og romtype-ord som antyder interiør/studio (typisk Oslo-dag)
+  const interiorPatterns = [
+    /\bint\.?\b/, /\binterior\b/, /\binnendørs\b/, /\binne\b/,
+    /\bleilighet\b|\bapartment\b|\bsofa\b|\bliving\s*room\b|\bstue\b/,
+    /\bkontor\b|\boffice\b|\bboard\s*room\b|\bkontorlandskap\b/,
+    /\bskole\b|\bclassroom\b|\bsykehus\b|\bhospital\b/,
+    /\bcafe\b|\bkaf[ée]\b|\bbar\b|\brestaurant\b/,
+    /\bstudio\b|\bsound\s*stage\b|\bfotostudio\b|\bfilmstudio\b|\batelier\b|\bscenografi\b/
+  ];
+
+  // Natur-ord som typisk betyr utenfor Oslo
+  const naturePatterns = [
+    /\bfjord(er)?\b|\bfjell(et)?\b|\bmountain(s)?\b|\bvidda\b|\btundra\b|\bskogen\b|\bskog\b|\bforest\b/,
+    /\bstrand\b|\bbeach\b|\bkyst\b|\bcoast\b|\bklippe(r)?\b|\bcliff(s)?\b/,
+    /\belv(a|en)?\b|\briver\b|\bsjø(en)?\b|\blake\b|\bvann\b/,
+    /\bfossefall\b|\bwaterfall\b|\bisbre(n)?\b|\bglacier\b/,
+    /\bhytte\b|\bcabin\b|\blandskap\b|\bnature\b|\boutdoors?\b/
+  ];
+
+  // Generisk urbant (kan støtte antakelse om Oslo hvis ikke annet er spesifisert)
+  const urbanPatterns = [
+    /\bby\b|\bcity\b|\burban\b|\bgater?\b|\bstreet\b|\btrikk\b|\btram\b|\bt[- ]?bane\b|\bmetro\b/
+  ];
+
+  // Direkte Oslo-fraser (og negasjoner)
+  const osloAffirmPatterns = [
+    /\bi\s*oslo\b/, /\bin\s*oslo\b/, /\boslo\b/,
+    /\boslo-?området\b|\bthe\s*oslo\s*area\b/
+  ];
+  const osloNegationPatterns = [
+    /\bikke\s*(i|in)\s*oslo\b/, // "ikke i Oslo"
+    /\bnot\s*(in|at)\s*oslo\b/,
+    /\butenfor\s*(av\s*)?oslo\b/, // "utenfor Oslo"
+    /\boutside\s*(of\s*)?oslo\b/,
+    /\boslo[^a-z]*\b(ikke|not)\b/ // "Oslo ... ikke"
+  ];
+
+  const hasInterior = matchesAny(normalizedText, interiorPatterns);
+  const hasNature = matchesAny(normalizedText, naturePatterns);
+  const hasUrban = matchesAny(normalizedText, urbanPatterns);
+  const mentionsOslo = matchesAny(normalizedText, osloAffirmPatterns);
+  const negatesOslo = matchesAny(normalizedText, osloNegationPatterns);
+
+  // Script shorthand INT./EXT. (kan være nyttig som svak indikator)
+  const intCount = count(/\bint\.?\b/g);
+  const extCount = count(/\bext\.?\b/g);
+
+  // ------------------------------
   // PRODUCTION TYPE DETECTION
+  // ------------------------------
   const productionTypePatterns = {
     film: [
       /\b(spillefilm|feature film|langfilm|kortfilm|short film)\b/,
@@ -175,7 +342,9 @@ export function analyzeBrief(inputText) {
     details.reasons.push(`Detected ${productionType} from keywords`);
   }
 
+  // ------------------------------
   // CREW TYPE DETECTION
+  // ------------------------------
   const crewTypePatterns = {
     fullCrew: [
       /\b(full crew|fullt mannskap|komplett crew)\b/,
@@ -233,7 +402,9 @@ export function analyzeBrief(inputText) {
     details.reasons.push('Fixer/small crew sufficient');
   }
 
-  // REGION DETECTION - Utvidet med nye regioner
+  // ------------------------------
+  // REGION DETEKSJON (utvidet)
+  // ------------------------------
   const regionPatterns = {
     oslo: {
       patterns: [
@@ -338,7 +509,75 @@ export function analyzeBrief(inputText) {
     }
   }
 
+  // ------------------------------
+  // GEO-INFER: Use map distance when place names are detected
+  // ------------------------------
+  try {
+    const geo = inferGeoDaysFromPlaces(inputText);
+    if (geo.places.length > 0) {
+      if (geo.inBoost) {
+        daysInOslo = Math.max(daysInOslo, geo.inBoost);
+      }
+      if (geo.outBoost) {
+        daysOutOfOslo = Math.max(daysOutOfOslo, geo.outBoost);
+        // Farther trips tend to require scouting/logistics
+        if (geo.outBoost >= 2) includeScout = true;
+      }
+      details.reasons.push(...geo.reasons);
+    }
+  } catch (e) {
+    // Defensive: never break analysis if geo step fails
+    details.reasons.push('Geo inference skipped due to parsing error');
+  }
+  // ------------------------------
+  // SCENE-HINTS → juster dager (INT/EXT, studio, natur) + negasjoner
+  // ------------------------------
+  if (hasInterior || hasUrban || intCount > 0) {
+    // Interiør/studio/urbant → Oslo-hint
+    const interiorBoost = CONFIG.sceneDays.interiorOsloHint;
+    if (negatesOslo) {
+      // Eksplisitt "ikke i Oslo" eller "utenfor Oslo" overstyrer til utenfor Oslo
+      daysOutOfOslo = Math.max(daysOutOfOslo, interiorBoost);
+      daysInOslo = Math.max(0, daysInOslo - interiorBoost);
+      details.reasons.push('Interior/studio mentioned but negated for Oslo → shifting days out of Oslo');
+    } else if (!mentionsOslo && detectedRegions.length === 0) {
+      // Ingen eksplisitt region → legg til svak Oslo-dag for interiør
+      daysInOslo = Math.max(daysInOslo, interiorBoost);
+      details.reasons.push('Interior/studio/urban context → hinting at at least one Oslo day');
+    } else if (mentionsOslo) {
+      daysInOslo = Math.max(daysInOslo, interiorBoost);
+      details.reasons.push('Oslo mentioned with interior/studio → confirming Oslo day');
+    }
+  }
+
+  if (hasNature || extCount > 0) {
+    // Natur/EXT → utenfor Oslo-hint
+    const diversity = [
+      /fjord/, /fjell|mountain/, /skog|forest/, /strand|beach/, /coast|kyst/, /river|elv/, /lake|sjø/, /waterfall|fossefall/, /glacier|isbre/
+    ].reduce((acc, rx) => acc + (has(rx) ? 1 : 0), 0);
+    const boost = Math.min(CONFIG.sceneDays.natureOutHintMax, Math.max(CONFIG.sceneDays.natureOutHintMin, diversity));
+
+    if (mentionsOslo && !negatesOslo) {
+      // Beskriver natur men nevner også Oslo → antatt dagstur/utflukt
+      daysOutOfOslo = Math.max(daysOutOfOslo, boost);
+      details.reasons.push(`Nature context near Oslo → adding ${boost} out-of-Oslo day(s)`);
+    } else {
+      daysOutOfOslo = Math.max(daysOutOfOslo, boost);
+      if (detectedRegions.length === 0) daysInOslo = Math.max(daysInOslo, 1); // base i Oslo + tur ut
+      details.reasons.push(`Nature context → adding ${boost} out-of-Oslo day(s)`);
+    }
+  }
+
+  // Eksplisitt negasjon: "ikke i Oslo" / "utenfor Oslo"
+  if (negatesOslo) {
+    if (daysOutOfOslo === 0) daysOutOfOslo = 1;
+    if (daysInOslo > 0) daysInOslo = Math.max(0, daysInOslo - 1);
+    details.reasons.push('Negation for Oslo detected (ikke/utenfor/ outside) → forcing out-of-Oslo day');
+  }
+
+  // ------------------------------
   // DAYS PARSING - Forbedret med støtte for flere formater
+  // ------------------------------
   const dayPatterns = [
     // Numerisk + d/days/dag/dager
     /(\d+)\s*d(?:ays?|ager?)?\b/,
@@ -387,12 +626,15 @@ export function analyzeBrief(inputText) {
       daysInOslo = Math.round(detectedDays * osloRatio);
       daysOutOfOslo = detectedDays - daysInOslo;
     } else {
+      // Ingen hint fra region/scene → legg alt i Oslo som default
       daysInOslo = detectedDays;
     }
     details.reasons.push(`Detected ${detectedDays} days from text`);
   }
 
+  // ------------------------------
   // LOCATIONS DETECTION
+  // ------------------------------
   let locations = Math.max(1, detectedRegions.length);
   
   if (has(/\b(multi[\s-]?location|flere steder|multiple locations?|various locations?)\b/)) {
@@ -400,7 +642,9 @@ export function analyzeBrief(inputText) {
     details.reasons.push('Multiple locations indicated');
   }
 
+  // ------------------------------
   // EQUIPMENT DETECTION - Utvidet med roadblock og lowloader
+  // ------------------------------
   const equipmentPatterns = {
     drone: {
       patterns: [
@@ -481,8 +725,11 @@ export function analyzeBrief(inputText) {
     }
   });
 
-  // CREATIVES DETECTION
+  // ------------------------------
+  // CREATIVES DETECTION (utvidet for kreativ skriving)
+  // ------------------------------
   let includeCreatives = crewType === 'fixer'; // Default for fixer
+  let hasOwnCreatives = false;
   
   const hasOwnCreativesPatterns = [
     /\b(egen regissør|own director|eget team|own team)\b/,
@@ -492,10 +739,26 @@ export function analyzeBrief(inputText) {
   
   if (matchesAny(normalizedText, hasOwnCreativesPatterns)) {
     includeCreatives = false;
+    hasOwnCreatives = true;
     details.reasons.push('Client has own creatives');
   }
 
+  const creativeWritingCues = [
+    /\bnarrativ(e|t)?\b|\bnarrative\b|\bstory\b|\bfortelling\b|\bmanus\b|\bscript\b|\btreatment\b/,
+    /\bstemning\b|\bmood\b|\bmoodboard\b|\bstoryboard\b|\bton(e|eart|alitet)\b|\btone\b/,
+    /\bpoetisk\b|\bpoetic\b|\bdrømmende\b|\bdreamlike\b|\bmetafor\b|\bmetaphor\b|\bsymbolikk\b|\bsymbolism\b/,
+    /\bvisuelt språk\b|\bvisual language\b|\blook\b|\bestetikk\b|\baesthetic\b/,
+    /\bkarakter(er)?\b|\bcharacter(s)?\b|\barc\b|\bmotivasjon\b|\bmotivation\b/
+  ];
+
+  if (matchesAny(normalizedText, creativeWritingCues) && !hasOwnCreatives) {
+    includeCreatives = true;
+    details.reasons.push('Creative storytelling cues detected → include creatives');
+  }
+
+  // ------------------------------
   // INTERNATIONAL DETECTION
+  // ------------------------------
   const internationalPatterns = {
     american: [
       /\b(amerikansk|american|usa|us production|hollywood)\b/,
@@ -519,7 +782,9 @@ export function analyzeBrief(inputText) {
     }
   });
 
+  // ------------------------------
   // BUDGET CALCULATION
+  // ------------------------------
   const totalDays = daysInOslo + daysOutOfOslo;
   let baseDailyRate = CONFIG.baseDailyRates[productionType] || CONFIG.baseDailyRates.default;
   
@@ -560,7 +825,9 @@ export function analyzeBrief(inputText) {
   // Apply international multiplier
   budgetNOK *= internationalMultiplier;
   
+  // ------------------------------
   // CONFIDENCE CALCULATION
+  // ------------------------------
   let confidence = 0.5; // Base confidence
   
   // Add confidence based on detected elements
