@@ -78,7 +78,7 @@ const SmartIntake = ({ onApply, onContinue, initialText = "", onTextChange }) =>
         throw new Error("Please paste at least 40 characters of project details.");
       }
 
-      const result = analyzeBrief(textContent);
+      const result = await analyzeBrief(textContent);
       setResp(result);
 
       if ((result.confidence ?? 0) >= 0.75) {
@@ -210,7 +210,13 @@ const SmartIntake = ({ onApply, onContinue, initialText = "", onTextChange }) =>
                 </div>
                 <div className="text-sm text-green-700">
                   <p>✓ Production type: {resp.suggestions?.productionType || "–"}</p>
-                  <p>✓ Crew: {resp.suggestions?.crewType === 'fullCrew' ? 'Full crew' : 'Fixer'}</p>
+                  <p>
+  ✓ Crew: {
+    resp.suggestions?.crewType
+      ? (resp.suggestions.crewType === 'fullCrew' ? 'Full crew' : 'Fixer')
+      : '–'
+  }
+</p>
                   <p>✓ Days: {resp.suggestions?.daysInOslo ?? 0} in Oslo, {resp.suggestions?.daysOutOfOslo ?? 0} outside</p>
                   <p>✓ Budget estimate: {resp.suggestions?.budgetNOK?.toLocaleString("no-NO")} NOK</p>
                   <p className="text-xs mt-1 italic">Confidence: {Math.round((resp.confidence ?? 0) * 100)}%</p>

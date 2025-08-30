@@ -59,6 +59,18 @@ const CONFIG = {
     european: 1.3,
     default: 1.0
   },
+
+  // Globale pris-justeringer (for å foreslå høyere budsjett generelt)
+  pricingAdjustments: {
+    // Flater +15 % på alt (juster tallet for mer/mindre aggressiv pris)
+    globalUplift: 1.15,
+    // Legg på en standard buffer/contingency på 15 %
+    contingencyPct: 0.15,
+    // Ekstra premium når det er reisedager utenfor Oslo
+    outOfOsloPremiumPct: 0.10,
+    // Litt ekstra kompleksitet pr. spesialutstyrs-type som er valgt
+    equipmentComplexityPctPerItem: 0.03
+  },
   
   // Confidence score ranges
   confidenceThresholds: {
@@ -87,7 +99,7 @@ const GAZETTEER = [
   { name: 'Bergen',      lat: 60.39299, lon: 5.32415, aliases: ['bergen'] },
   { name: 'Stavanger',   lat: 58.96998, lon: 5.73311, aliases: ['stavanger'] },
   { name: 'Trondheim',   lat: 63.43049, lon: 10.39506, aliases: ['trondheim', 'trondhjem'] },
-  { name: 'Tromsø',      lat: 69.64920, lon: 18.95532, aliases: ['tromso', 'tromsø', 'tromsoe'] },
+  { name: 'Tromsø',      lat: 69.64920, lon: 18.95532, aliases: ['tromso', 'tromsø', 'tromsoe', 'troms'] },
   { name: 'Ålesund',     lat: 62.47223, lon: 6.14948, aliases: ['alesund', 'ålësund'] },
   { name: 'Kristiansand',lat: 58.14671, lon: 7.99560, aliases: ['kristiansand'] },
   { name: 'Bodø',        lat: 67.27999, lon: 14.40501, aliases: ['bodo', 'bodø', 'bodoe'] },
@@ -100,6 +112,35 @@ const GAZETTEER = [
   { name: 'Lillehammer', lat: 61.1153,  lon: 10.4662, aliases: ['lillehammer'] },
   { name: 'Røros',       lat: 62.5746,  lon: 11.3841, aliases: ['roros', 'røros', 'roroes'] }
 ];
+// Parse explicit number of days mentioned in text (supports EN/NO words and digits)
+function parseSpecifiedDays(text = '') {
+  const t = (text || '').toLowerCase();
+  const numberWords = {
+    // English
+    one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+    // Norwegian
+    en: 1, ett: 1, to: 2, tre: 3, fire: 4, fem: 5, seks: 6, syv: 7, sju: 7, åtte: 8, atte: 8, ni: 9, ti: 10
+  };
+
+  const patterns = [
+    /(\d+)\s*d(?:ays?|ager?)?\b/,
+    /(\d+)\s*(?:days?|dager?)\b/,
+    /\b(one|two|three|four|five|six|seven|eight|nine|ten)\s*(?:days?)\b/,
+    /\b(en|ett|to|tre|fire|fem|seks|syv|sju|åtte|atte|ni|ti)\s*(?:dag(?:er)?)\b/,
+    /(\d+)\s*days?\s*per\s*location/,
+    /(\d+)\s*dager?\s*per\s*lokasjon/
+  ];
+
+  let detected = 0;
+  for (const rx of patterns) {
+    const m = t.match(rx);
+    if (m) {
+      if (m[1] && !isNaN(m[1])) detected = Math.max(detected, parseInt(m[1], 10));
+      else if (m[1] && numberWords[m[1]]) detected = Math.max(detected, numberWords[m[1]]);
+    }
+  }
+  return detected;
+}
 
 // Normalize: lowercase, strip accents/diacritics, tame nordic letters and punctuation.
 function normalizeName(s = '') {
@@ -155,32 +196,258 @@ function findPlacesInText(rawText = '') {
 // - 30–250km: Day-trip plausible ⇒ +1 out-of-Oslo day
 // - 250–800km: Travel + shoot ⇒ +2 out-of-Oslo days
 // - > 800km: Remote/Arctic ⇒ +3 out-of-Oslo days
+// ~90 km fra Oslo regnes som "Oslo-dag"; ellers "utenfor Oslo-dag".
 function inferGeoDaysFromPlaces(rawText) {
   const places = findPlacesInText(rawText);
   if (!places.length) return { inBoost: 0, outBoost: 0, places: [], reasons: [] };
 
+  const THRESHOLD_KM = 90; // ~1 time kjøring
   let inBoost = 0;
   let outBoost = 0;
   const reasons = [];
 
   places.forEach(p => {
     const d = haversineKm(OSLO_COORD.lat, OSLO_COORD.lon, p.lat, p.lon);
-    if (d < 30) {
+    if (d <= THRESHOLD_KM) {
       inBoost = Math.max(inBoost, 1);
-      reasons.push(`${p.name} ~${Math.round(d)}km from Oslo ⇒ at least one Oslo day`);
-    } else if (d < 250) {
-      outBoost = Math.max(outBoost, 1);
-      reasons.push(`${p.name} ~${Math.round(d)}km ⇒ likely day trip (+1 out-of-Oslo day)`);
-    } else if (d < 800) {
-      outBoost = Math.max(outBoost, 2);
-      reasons.push(`${p.name} ~${Math.round(d)}km ⇒ travel + shoot (+2 out-of-Oslo days)`);
+      reasons.push(`${p.name} ~${Math.round(d)}km ⇒ innen ~1t fra Oslo → +1 Oslo-dag`);
     } else {
-      outBoost = Math.max(outBoost, 3);
-      reasons.push(`${p.name} ~${Math.round(d)}km (remote) ⇒ (+3 out-of-Oslo days)`);
+      outBoost = Math.max(outBoost, 1);
+      reasons.push(`${p.name} ~${Math.round(d)}km ⇒ utenfor ~1t-radius → +1 dag utenfor Oslo`);
     }
   });
 
   return { inBoost, outBoost, places, reasons };
+}
+
+// ------------------------------------------
+// OPTIONAL ONLINE GEOCODING (Mapbox or Nominatim)
+// Controlled by env vars; falls back to offline gazetteer if disabled
+// ------------------------------------------
+const GEOCODER_CFG = (() => {
+  const env = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
+  return {
+    provider: (env.VITE_GEOCODER || env.NEXT_PUBLIC_GEOCODER || 'none').toLowerCase(), // 'mapbox' | 'nominatim' | 'none'
+    mapboxToken: env.VITE_MAPBOX_TOKEN || env.NEXT_PUBLIC_MAPBOX_TOKEN || '',
+    email: env.VITE_CONTACT_EMAIL || env.NEXT_PUBLIC_CONTACT_EMAIL || ''
+  };
+})();
+
+// ------------------------------
+// BACKEND AI (optional): let the server use Gemini with richer context
+// ------------------------------
+const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_API_BASE || import.meta.env.NEXT_PUBLIC_API_BASE)) || '';
+const ANALYZE_PATH = (typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_ANALYZE_PATH || import.meta.env.NEXT_PUBLIC_ANALYZE_PATH)) || '/api/brief/analyze';
+
+function apiUrl() { return `${API_BASE}${ANALYZE_PATH}`; }
+
+function distFromOsloKm(lat, lon) {
+  return Math.round(haversineKm(OSLO_COORD.lat, OSLO_COORD.lon, lat, lon));
+}
+
+function buildContextForAI(inputText, currentResult) {
+  const offlinePlaces = findPlacesInText(inputText).map(p => ({
+    name: p.name,
+    lat: p.lat,
+    lon: p.lon,
+    distanceKmFromOslo: distFromOsloKm(p.lat, p.lon)
+  }));
+
+  const specifiedDays = parseSpecifiedDays(inputText) || 0;
+
+  return {
+    osloCoord: OSLO_COORD,
+    heuristics: {
+      thresholdKmOslo: 90,
+      offlinePlaces,
+      currentSuggestions: currentResult?.suggestions || {},
+      signals: currentResult?.details?.signals || {},
+      reasons: currentResult?.details?.reasons || []
+    },
+    // Keep raw text as well; backend will craft the prompt safely.
+    textPreview: inputText.slice(0, 2000)
+  };
+}
+
+async function aiAnalyzeRemote(text, context) {
+  // Only call if a path/base is configured; otherwise fall back to local
+  try {
+    const url = apiUrl();
+    if (!url) return null;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ text, context })
+    });
+    if (!res.ok) return null;
+    const json = await res.json().catch(() => null);
+    return json;
+  } catch (_) {
+    return null;
+  }
+}
+
+function mergeRemoteIntoLocal(local, remotePayload) {
+  if (!remotePayload) return local;
+  const r = remotePayload.result || remotePayload.data || remotePayload;
+  const out = { ...local };
+  const L = local.suggestions || {};
+  const R = r?.suggestions || {};
+  const merged = { ...L };
+
+  if (R.productionType) merged.productionType = R.productionType;
+  if (R.crewType) merged.crewType = R.crewType;
+  ['includeScout','includeCreatives'].forEach(k => { if (typeof R[k] === 'boolean') merged[k] = R[k]; });
+
+  if (Array.isArray(R.equipment)) {
+    const map = new Map();
+    (L.equipment || []).forEach(it => map.set(it.type, it));
+    R.equipment.forEach(it => {
+      if (!it || !it.type) return;
+      if (map.has(it.type)) {
+        const ex = map.get(it.type);
+        map.set(it.type, { type: it.type, days: Math.max(1, ex.days || 1, it.days || 1) });
+      } else {
+        map.set(it.type, { type: it.type, days: Math.max(1, it.days || 1) });
+      }
+    });
+    merged.equipment = Array.from(map.values());
+  }
+
+  if (Number.isFinite(R.daysInOslo)) merged.daysInOslo = Math.max(0, R.daysInOslo);
+  if (Number.isFinite(R.daysOutOfOslo)) merged.daysOutOfOslo = Math.max(0, R.daysOutOfOslo);
+  if (Number.isFinite(R.locations)) merged.locations = Math.max(L.locations || 1, R.locations);
+  if (Number.isFinite(R.budgetNOK)) merged.budgetNOK = Math.max(L.budgetNOK || 0, R.budgetNOK);
+
+  out.suggestions = merged;
+  out.confidence = Math.max(Number(out.confidence) || 0, Number(r.confidence) || 0);
+
+  out.details = out.details || { reasons: [], scores: {} };
+  if (r?.details?.reasons) out.details.reasons.push('Backend AI:', ...r.details.reasons);
+  out.rawRemote = r;
+  return out;
+}
+
+// Extract likely place phrases from free text (NO/EN), preferring "i/til"/"in/to" constructs.
+// Keeps it small to avoid spamming the geocoder.
+function extractPlaceQueries(text = '') {
+  const qs = new Set();
+  const clean = (s) => s.trim().replace(/[,.;:!?].*$/, '').replace(/\s+/g, ' ');
+  let m;
+
+  // Preposition-based: "i Troms", "in Lofoten", "til Trondheim"
+  const rxPrep = /\b(?:i|in|til|to)\s+([a-zA-ZæøåÆØÅ\-\s]{2,40})/g;
+  while ((m = rxPrep.exec(text))) {
+    const q = clean(m[1]);
+    if (q.length >= 2) qs.add(q);
+  }
+
+  // Fallback: simple proper-noun phrases (Tromsø, Nordland, Geiranger)
+  if (qs.size === 0) {
+    const rxCap = /\b([A-ZÆØÅ][a-zæøåA-ZÆØÅ]{2,}(?:\s+[A-ZÆØÅ][a-zæøåA-ZÆØÅ]{2,}){0,2})\b/g;
+    while ((m = rxCap.exec(text))) {
+      const q = clean(m[1]);
+      if (q.length >= 3) qs.add(q);
+    }
+  }
+  // limit to a handful of queries
+  return Array.from(qs).slice(0, 5);
+}
+
+async function geocodeMapbox(q) {
+  const token = GEOCODER_CFG.mapboxToken;
+  if (!token) return null;
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?limit=1&country=no&language=no,en&access_token=${token}`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const json = await res.json();
+  const f = json.features && json.features[0];
+  if (!f) return null;
+  const [lon, lat] = f.center || [];
+  const cc = (f.context || []).find(c => c.id && c.id.startsWith('country'))?.short_code || 'no';
+  return { name: f.text || f.place_name, lat, lon, country_code: cc };
+}
+
+async function geocodeNominatim(q) {
+  const email = GEOCODER_CFG.email ? `&email=${encodeURIComponent(GEOCODER_CFG.email)}` : '';
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=no&q=${encodeURIComponent(q)}${email}`;
+  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (!res.ok) return null;
+  const json = await res.json();
+  const hit = json && json[0];
+  if (!hit) return null;
+  return { name: hit.display_name, lat: parseFloat(hit.lat), lon: parseFloat(hit.lon), country_code: (hit.address && hit.address.country_code) || 'no' };
+}
+
+async function onlineGeocodePlaces(text = '') {
+  const queries = extractPlaceQueries(text);
+  if (!queries.length) return [];
+  const out = [];
+  for (const q of queries) {
+    let hit = null;
+    if (GEOCODER_CFG.provider === 'mapbox') {
+      hit = await geocodeMapbox(q);
+    } else if (GEOCODER_CFG.provider === 'nominatim') {
+      hit = await geocodeNominatim(q);
+    }
+    if (hit && (hit.country_code || '').toLowerCase().startsWith('no')) {
+      out.push(hit);
+    }
+  }
+  return out;
+}
+
+function distanceBoostFromCoord(lat, lon) {
+  const THRESHOLD_KM = 90; // ~1 time fra Oslo
+  const d = haversineKm(OSLO_COORD.lat, OSLO_COORD.lon, lat, lon);
+  if (d <= THRESHOLD_KM) {
+    return { inBoost: 1, outBoost: 0, reason: `~${Math.round(d)}km ⇒ innen ~1t fra Oslo → +1 Oslo-dag` };
+  }
+  return { inBoost: 0, outBoost: 1, reason: `~${Math.round(d)}km ⇒ utenfor ~1t-radius → +1 dag utenfor Oslo` };
+}
+
+async function refineWithOnlineGeocode(result, text) {
+  if (!GEOCODER_CFG.provider || GEOCODER_CFG.provider === 'none') return result;
+  const hits = await onlineGeocodePlaces(text);
+  if (!hits.length) return result;
+
+  let inBoost = 0, outBoost = 0;
+  const reasons = [];
+
+  hits.forEach(h => {
+    const b = distanceBoostFromCoord(h.lat, h.lon);
+    inBoost = Math.max(inBoost, b.inBoost);
+    outBoost = Math.max(outBoost, b.outBoost);
+    reasons.push(`${h.name}: ${b.reason}`);
+  });
+
+  const sug = result.suggestions;
+  const specifiedDays = parseSpecifiedDays(text) || 0; // 0 means not explicitly specified
+
+  if (specifiedDays > 0) {
+    // Keep the total days fixed to what user wrote, and allocate using geo signal
+    const desiredOut = Math.min(Math.max(sug.daysOutOfOslo, outBoost), specifiedDays);
+    const desiredIn = Math.max(0, specifiedDays - desiredOut);
+    sug.daysOutOfOslo = desiredOut;
+    sug.daysInOslo = desiredIn;
+  } else {
+    // No explicit total: apply boosts as minimums
+    if (inBoost) sug.daysInOslo = Math.max(sug.daysInOslo, inBoost);
+    if (outBoost) {
+      // If we previously had only Oslo days but geo says we must travel, move at least one day out
+      if (sug.daysOutOfOslo === 0 && sug.daysInOslo > 0) {
+        const shift = Math.min(outBoost, sug.daysInOslo);
+        sug.daysInOslo -= shift;
+        sug.daysOutOfOslo = Math.max(sug.daysOutOfOslo, shift);
+      } else {
+        sug.daysOutOfOslo = Math.max(sug.daysOutOfOslo, outBoost);
+      }
+    }
+  }
+
+  result.details.reasons.push('Online geocoding applied', ...reasons);
+  return result;
 }
 
 /**
@@ -202,7 +469,7 @@ function inferGeoDaysFromPlaces(rawText) {
  * @returns {Array} returns.details.reasons - Liste med forklaringer
  * @returns {Object} returns.details.scores - Scorer per kategori
  */
-export function analyzeBrief(inputText) {
+function analyzeBriefSync(inputText) {
   if (!inputText || typeof inputText !== 'string') {
     return {
       suggestions: {
@@ -824,6 +1091,24 @@ export function analyzeBrief(inputText) {
   
   // Apply international multiplier
   budgetNOK *= internationalMultiplier;
+
+  // Apply global uplifts & contingency to suggest higher budgets
+  const P = CONFIG.pricingAdjustments;
+  if (P) {
+    // Complexity factor grows slightly with number of special equipment items
+    const complexityFactor = 1 + (P.equipmentComplexityPctPerItem * (equipment.length || 0));
+    budgetNOK = budgetNOK * P.globalUplift * complexityFactor;
+    if (daysOutOfOslo > 0) {
+      budgetNOK *= (1 + P.outOfOsloPremiumPct);
+    }
+    budgetNOK *= (1 + P.contingencyPct);
+    details.reasons.push(
+      `Pricing uplifts applied: +${Math.round((P.globalUplift - 1) * 100)}% base` +
+      `${daysOutOfOslo > 0 ? `, +${Math.round(P.outOfOsloPremiumPct * 100)}% travel premium` : ''}` +
+      `, +${Math.round(P.contingencyPct * 100)}% contingency` +
+      `${(equipment.length || 0) > 0 ? `, +${Math.round(P.equipmentComplexityPctPerItem * 100)}% × ${equipment.length} equipment` : ''}`
+    );
+  }
   
   // ------------------------------
   // CONFIDENCE CALCULATION
@@ -845,6 +1130,21 @@ export function analyzeBrief(inputText) {
     confidence *= 0.7;
   }
   
+  // Keep key signals so backend AI can use them as hints
+  details.signals = {
+    hasInterior,
+    hasNature,
+    hasUrban,
+    mentionsOslo,
+    negatesOslo,
+    intCount,
+    extCount,
+    detectedDays,
+    detectedRegions,
+    productionType,
+    crewType
+  };
+
   return {
     suggestions: {
       productionType,
@@ -862,22 +1162,55 @@ export function analyzeBrief(inputText) {
   };
 }
 
+// Unified async analysis: local heuristics, refine with geocode, then backend AI if available
+export async function analyzeBrief(inputText) {
+  // 1) Local heuristics first (fast, offline)
+  let base = analyzeBriefSync(inputText);
+
+  // 2) Optional online geocoding refinement (Mapbox/Nominatim)
+  try {
+    base = await refineWithOnlineGeocode(base, inputText);
+  } catch (e) {
+    base.details = base.details || { reasons: [] };
+    base.details.reasons = base.details.reasons || [];
+    base.details.reasons.push('Online geocoding failed; using offline heuristics');
+  }
+
+  // 3) Backend AI (Gemini via your server) – pass rich context, then merge
+  try {
+    const ctx = buildContextForAI(inputText, base);
+    const remote = await aiAnalyzeRemote(inputText, ctx);
+    if (remote) {
+      base = mergeRemoteIntoLocal(base, remote);
+    } else {
+      base.details.reasons.push('Backend AI unavailable or returned no data; keeping local analysis');
+    }
+  } catch (_) {
+    base.details.reasons.push('Backend AI call failed; keeping local analysis');
+  }
+
+  return base;
+}
+
+// Backwards compatibility: alias the old name to the new unified async function
+export const analyzeBriefOnline = analyzeBrief;
+
 // Eksporter hjelpefunksjoner for testing
 export const helpers = {
   CONFIG,
-  
+
   detectProductionType: (text) => {
-    const analysis = analyzeBrief(text);
+    const analysis = analyzeBriefSync(text);
     return analysis.suggestions.productionType;
   },
-  
+
   detectCrewType: (text) => {
-    const analysis = analyzeBrief(text);
+    const analysis = analyzeBriefSync(text);
     return analysis.suggestions.crewType;
   },
-  
+
   detectLocations: (text) => {
-    const analysis = analyzeBrief(text);
+    const analysis = analyzeBriefSync(text);
     return {
       daysInOslo: analysis.suggestions.daysInOslo,
       daysOutOfOslo: analysis.suggestions.daysOutOfOslo,
@@ -885,9 +1218,9 @@ export const helpers = {
       locations: analysis.suggestions.locations
     };
   },
-  
+
   detectEquipment: (text) => {
-    const analysis = analyzeBrief(text);
+    const analysis = analyzeBriefSync(text);
     return analysis.suggestions.equipment;
   }
 };
