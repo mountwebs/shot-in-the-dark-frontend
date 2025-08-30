@@ -105,8 +105,7 @@ const SmartIntake = ({ onApply, onContinue, initialText = "", onTextChange }) =>
   </h2>
 
   <p className="text-[#2d2a26] text-base sm:text-lg leading-relaxed mb-8">
-  The prompt suggests production inputs, but it’s when you submit your brief — together with your edited inputs — that it becomes a structured prompt for our backend. There, we combine model output with hard-coded cost rules and local expertise. The result is precise and explainable, not solely model-driven.
-  </p>
+  This is an optional step where we’ve integrated Gemini to assist with production inputs. On the backend, we combine the model’s output with hard-coded cost rules and local expertise. The result is accurate and explainable — not solely driven by AI.  </p>
 
   <div className="grid grid-cols-1 gap-6 text-[#2d2a26] mb-8">
     <div className="flex items-center justify-center sm:justify-start">
@@ -114,10 +113,9 @@ const SmartIntake = ({ onApply, onContinue, initialText = "", onTextChange }) =>
         <Brain className="h-5 w-5 text-[#6f655c]" />
       </div>
       <div className="text-left">
-        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Step 1. Heuristic Frontend</h3>
+        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Step 1. Frontend</h3>
         <p className="text-sm text-[#6f655c]">
-          The brief can help as a starting point for you inputs but whatever changes you amke will overright this. You don't need to go back to ajust the text.
-        </p>
+        The brief can serve as a starting point for your inputs, but any changes you make will override it. There’s no need to go back and adjust the original text.        </p>
       </div>
     </div>
 

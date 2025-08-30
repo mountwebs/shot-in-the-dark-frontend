@@ -7,11 +7,11 @@
 const CONFIG = {
   // Basis dagrater per produksjonstype (NOK)
   baseDailyRates: {
-    film: 160000,
-    commercial: 120000,
-    stills: 60000,
-    documentary: 70000,
-    default: 80000
+    film: 180000,        // var 160000
+    commercial: 140000,  // var 120000
+    stills: 80000,       // var 60000
+    documentary: 85000,  // var 70000
+    default: 90000       // var 80000
   },
   
   // Crew type multiplikatorer
@@ -45,13 +45,14 @@ const CONFIG = {
     specialized: 50000
   },
   
-  // Tilleggskostnader
   additionalCosts: {
     scout: 50000,
     creatives: 100000,
-    travelPerDay: 20000
+    travelPerDay: 40000,                 // var 45000
+    locationSwitch: 20000,               // var 25000
+    equipmentFreightPerItemPerOutDay: 4000 // var 5000
   },
-  
+
   // Internasjonale multiplikatorer
   internationalMultipliers: {
     american: 1.5,
@@ -60,16 +61,26 @@ const CONFIG = {
     default: 1.0
   },
 
+  // Innenlands "remote" multiplikator (logistikk/tilgjengelighet)
+  domesticRemoteMultipliers: {
+    near: 1.0,       // Oslo/Østlandet og nært
+    regional: 1.12,  // var 1.15 – Vestlandet, Trøndelag, Innlandet, Sørlandet
+    far: 1.25        // var 1.30 – Nord-Norge/Svalbard og svært avsides
+  },
+
   // Globale pris-justeringer (for å foreslå høyere budsjett generelt)
   pricingAdjustments: {
-    // Flater +15 % på alt (juster tallet for mer/mindre aggressiv pris)
-    globalUplift: 1.15,
-    // Legg på en standard buffer/contingency på 15 %
-    contingencyPct: 0.15,
-    // Ekstra premium når det er reisedager utenfor Oslo
-    outOfOsloPremiumPct: 0.10,
-    // Litt ekstra kompleksitet pr. spesialutstyrs-type som er valgt
-    equipmentComplexityPctPerItem: 0.03
+    // litt mindre offensiv baseline
+    globalUplift: 1.18,          // var 1.22
+    contingencyPct: 0.16,        // var 0.18
+
+    // “utenfor Oslo”:
+    outOfOsloPremiumPct: 0.16,   // var 0.18 – grunnpåslag ved minst én utedag
+    outOfOsloStepPct: 0.05,      // var 0.06 – ekstra pr. utedag utover første
+    outOfOsloMaxPct: 0.30,       // var 0.35 – tak
+
+    // litt mindre for kompleksitet ved spesialutstyr
+    equipmentComplexityPctPerItem: 0.035 // var 0.04
   },
   
   // Confidence score ranges
@@ -151,6 +162,35 @@ function normalizeName(s = '') {
     .replace(/[^a-z0-9\s\-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+// Detect language of input (NO/EN/mixed) by simple heuristics
+function detectLanguage(raw = '') {
+  const text = (raw || '').toLowerCase();
+  let noScore = 0;
+  let enScore = 0;
+
+  // Strong signal: Norwegian letters
+  if (/[æøå]/i.test(raw)) noScore += 3;
+
+  const noWords = [
+    'og','ikke','med','til','på','utenfor','innenfor','dag','dager','lokasjon','steder','innspilling','opptak','mannskap','regissør','stills','fjell','fjord','norge','oslo'
+  ];
+  const enWords = [
+    'and','not','with','to','in','outside','inside','day','days','location','locations','shoot','filming','crew','director','mountain','fjord','norway','oslo'
+  ];
+
+  const countOcc = (arr) => arr.reduce((acc, w) => acc + (text.match(new RegExp(`\\b${w}\\b`, 'g')) || []).length, 0);
+  noScore += countOcc(noWords);
+  enScore += countOcc(enWords);
+
+  const label = noScore > enScore + 1 ? 'no' : enScore > noScore + 1 ? 'en' : 'mixed';
+  return {
+    label,
+    isNorwegian: label === 'no',
+    isEnglish: label === 'en',
+    scores: { no: noScore, en: enScore }
+  };
 }
 
 const GAZ_INDEX = (() => {
@@ -497,6 +537,9 @@ function analyzeBriefSync(inputText) {
     scores: {}
   };
 
+  // Language detection
+  const lang = detectLanguage(inputText);
+
   // Helper funksjoner
   const has = (regex) => regex.test(normalizedText);
   const count = (regex) => (normalizedText.match(regex) || []).length;
@@ -651,6 +694,12 @@ function analyzeBriefSync(inputText) {
     fullCrewScore += 20;
   } else if (productionType === 'documentary' || productionType === 'stills') {
     fixerScore += 20;
+  }
+
+  // Language bias: English briefs are more likely service productions (fixer) — soft bias
+  if (lang.isEnglish && !matchesAny(normalizedText, crewTypePatterns.fullCrew)) {
+    fixerScore += 6; // was 12
+    details.reasons.push('English brief → soft service‑production bias (+6 to fixer)');
   }
 
   // Spesialisert utstyr krever full crew
@@ -903,10 +952,30 @@ function analyzeBriefSync(inputText) {
   // LOCATIONS DETECTION
   // ------------------------------
   let locations = Math.max(1, detectedRegions.length);
-  
-  if (has(/\b(multi[\s-]?location|flere steder|multiple locations?|various locations?)\b/)) {
+
+  // Broader multi-location cues (NO/EN)
+  const multiLocRx = /\b(multi[\s-]?location|flere steder|ulike steder|forskjellige steder|several places|multiple locations?|various places|across (?:norway|the country)|over hele landet|rundt i (?:norge|landet)|spredt rundt)\b/;
+  if (has(multiLocRx)) {
     locations = Math.max(locations, 3);
     details.reasons.push('Multiple locations indicated');
+  }
+
+  // Infer locations from distinct scene types mentioned (fjord, fjell, by, etc.)
+  const sceneTypeMatchers = [
+    ['fjord', /\bfjord\w*\b/],
+    ['fjell', /\bfjell\w*|mountain(s)?\b/],
+    ['by', /\bby\b|\bcity\b|\burban\b/],
+    ['skog', /\bskog(en)?\b|\bforest\b/],
+    ['strand', /\bstrand\b|\bbeach\b/],
+    ['elv', /\belv(a|en)?\b|\briver\b/],
+    ['sjo', /\bsjø(en)?\b|\blake\b|\bvann\b/],
+    ['fossefall', /\bfossefall\b|\bwaterfall\b/]
+  ];
+  const uniqScenes = new Set();
+  sceneTypeMatchers.forEach(([name, rx]) => { if (has(rx)) uniqScenes.add(name); });
+  if (uniqScenes.size >= 2) {
+    locations = Math.max(locations, uniqScenes.size);
+    details.reasons.push(`Multiple scene types detected (${Array.from(uniqScenes).join(', ')}) → locations ≥ ${uniqScenes.size}`);
   }
 
   // ------------------------------
@@ -916,6 +985,7 @@ function analyzeBriefSync(inputText) {
     drone: {
       patterns: [
         /\b(drone|droner|uav|fpv)\b/,
+        /\bdrone(?:bilde|bilder|opptak|video|klipp|sekvenser|shots?|footage|kamera)\b/,
         /\b(luftfoto|aerial|luftopptak|aerial photography)\b/,
         /\b(helikopter|helicopter)\b/,
         /\b(fugleperspektiv|bird'?s eye|ovenfra|from above)\b/
@@ -985,7 +1055,15 @@ function analyzeBriefSync(inputText) {
           equipmentDays = Math.max(equipmentDays, parseInt(afterMatch[1]));
         }
       });
-      
+
+      // If drone is used across multiple places or out-of-Oslo days, assume it spans those days
+      if (type === 'drone') {
+        const impliedSpan = detectedDays || Math.max(daysOutOfOslo, locations);
+        if (impliedSpan > 0) {
+          equipmentDays = Math.max(equipmentDays, impliedSpan);
+        }
+      }
+
       equipment.push({ type, days: equipmentDays });
       details.reasons.push(`Equipment: ${type}`);
       hasTechEquipment = true;
@@ -1021,6 +1099,27 @@ function analyzeBriefSync(inputText) {
   if (matchesAny(normalizedText, creativeWritingCues) && !hasOwnCreatives) {
     includeCreatives = true;
     details.reasons.push('Creative storytelling cues detected → include creatives');
+  }
+
+  // Language-driven heuristic for creatives (soft)
+  if (!hasOwnCreatives) {
+    if (lang.isNorwegian) {
+      // Norwegian briefs more often need local creative help
+      if (!includeCreatives) {
+        includeCreatives = true;
+        details.reasons.push('Norwegian brief → include creatives');
+      }
+    } else if (lang.isEnglish && !matchesAny(normalizedText, creativeWritingCues)) {
+      // Soft bias: only suppress creatives when there are explicit service cues
+      const serviceLean = /\b(service production|fixer|local producer|local production|client team|bring(ing)? (?:a )?director|own creatives)\b/i;
+      if (serviceLean.test(normalizedText)) {
+        includeCreatives = false;
+        details.reasons.push('English brief + service cues → creatives client‑side');
+      } else {
+        // Keep current decision; merely record a soft bias
+        details.reasons.push('English brief → mild service‑production bias (kept creatives unless other signals)');
+      }
+    }
   }
 
   // ------------------------------
@@ -1068,6 +1167,17 @@ function analyzeBriefSync(inputText) {
   
   let budgetNOK = baseDailyRate * totalDays;
   
+  // Innenlands "remote"-multiplikator (enkelt og robust)
+let domesticMultiplier = CONFIG.domesticRemoteMultipliers?.near ?? 1.0;
+
+if (detectedRegions.includes('northernNorway')) {
+  domesticMultiplier = CONFIG.domesticRemoteMultipliers?.far ?? 1.30;
+  details.reasons.push('Remote region (Nord-Norge/Svalbard) → domestic remote multiplier applied');
+} else if (daysOutOfOslo > 0 || ['westCoast','trondelag','innlandet','sorlandet','telemark'].some(r => detectedRegions.includes(r))) {
+  domesticMultiplier = CONFIG.domesticRemoteMultipliers?.regional ?? 1.15;
+  details.reasons.push('Regional travel → domestic remote multiplier applied');
+}
+  
   // Add equipment costs
   equipment.forEach(item => {
     const cost = CONFIG.equipmentCosts[item.type] || 30000;
@@ -1084,31 +1194,60 @@ function analyzeBriefSync(inputText) {
     budgetNOK += CONFIG.additionalCosts.creatives;
   }
   
-  // Add travel costs
-  if (daysOutOfOslo > 0) {
-    budgetNOK += daysOutOfOslo * CONFIG.additionalCosts.travelPerDay;
-  }
-  
-  // Apply international multiplier
-  budgetNOK *= internationalMultiplier;
+// Add travel costs
+if (daysOutOfOslo > 0) {
+  budgetNOK += daysOutOfOslo * CONFIG.additionalCosts.travelPerDay;
+}
 
-  // Apply global uplifts & contingency to suggest higher budgets
-  const P = CONFIG.pricingAdjustments;
-  if (P) {
-    // Complexity factor grows slightly with number of special equipment items
-    const complexityFactor = 1 + (P.equipmentComplexityPctPerItem * (equipment.length || 0));
-    budgetNOK = budgetNOK * P.globalUplift * complexityFactor;
-    if (daysOutOfOslo > 0) {
-      budgetNOK *= (1 + P.outOfOsloPremiumPct);
-    }
-    budgetNOK *= (1 + P.contingencyPct);
-    details.reasons.push(
-      `Pricing uplifts applied: +${Math.round((P.globalUplift - 1) * 100)}% base` +
-      `${daysOutOfOslo > 0 ? `, +${Math.round(P.outOfOsloPremiumPct * 100)}% travel premium` : ''}` +
-      `, +${Math.round(P.contingencyPct * 100)}% contingency` +
-      `${(equipment.length || 0) > 0 ? `, +${Math.round(P.equipmentComplexityPctPerItem * 100)}% × ${equipment.length} equipment` : ''}`
-    );
+// Kostnad for bytte av lokasjon
+if (locations > 1 && CONFIG.additionalCosts.locationSwitch) {
+  budgetNOK += (locations - 1) * CONFIG.additionalCosts.locationSwitch;
+  details.reasons.push(`Location switches: ${(locations - 1)} × ${CONFIG.additionalCosts.locationSwitch} NOK`);
+}
+
+// Frakt/transport av spesialutstyr ved utedager
+if (daysOutOfOslo > 0 && equipment.length > 0 && CONFIG.additionalCosts.equipmentFreightPerItemPerOutDay) {
+  const freight = equipment.length * daysOutOfOslo * CONFIG.additionalCosts.equipmentFreightPerItemPerOutDay;
+  budgetNOK += freight;
+  details.reasons.push(`Equipment freight: ${equipment.length} items × ${daysOutOfOslo} day(s) × ${CONFIG.additionalCosts.equipmentFreightPerItemPerOutDay} NOK`);
+}
+
+// Apply domestic and international multipliers
+budgetNOK *= domesticMultiplier;
+budgetNOK *= internationalMultiplier;
+
+// Apply global uplifts & contingency to suggest higher budgets (mer aggressivt utenfor Oslo)
+const P = CONFIG.pricingAdjustments;
+if (P) {
+  const complexityFactor = 1 + (P.equipmentComplexityPctPerItem * (equipment.length || 0));
+  budgetNOK = budgetNOK * P.globalUplift * complexityFactor;
+
+  if (daysOutOfOslo > 0) {
+    const baseTravel = P.outOfOsloPremiumPct;
+    const step = P.outOfOsloStepPct || 0;
+    const cap = P.outOfOsloMaxPct || (baseTravel + step * 2);
+    const dyn = Math.min(baseTravel + step * Math.max(0, daysOutOfOslo - 1), cap);
+    budgetNOK *= (1 + dyn);
+    details.reasons.push(`Dynamic out-of-Oslo premium (+${Math.round(dyn * 100)}%) for ${daysOutOfOslo} day(s) outside Oslo`);
   }
+
+  // Natur/utendørs har ofte mer logistikk/vær-risiko
+  if (hasNature) {
+    budgetNOK *= 1.05;
+    details.reasons.push('Nature/outdoor complexity premium (+5%)');
+  }
+
+  budgetNOK *= (1 + P.contingencyPct);
+
+  const parts = [
+    `+${Math.round((P.globalUplift - 1) * 100)}% base uplift`,
+    `+${Math.round(P.contingencyPct * 100)}% contingency`
+  ];
+  if (equipment.length) parts.push(`+${Math.round(P.equipmentComplexityPctPerItem * 100)}% × ${equipment.length} equipment`);
+  if (domesticMultiplier > 1.0) parts.push(`domestic remote ×${domesticMultiplier.toFixed(2)}`);
+  if (internationalMultiplier > 1.0) parts.push(`international ×${internationalMultiplier.toFixed(2)}`);
+  details.reasons.push(`Pricing factors: ${parts.join(', ')}`);
+}
   
   // ------------------------------
   // CONFIDENCE CALCULATION
@@ -1142,7 +1281,8 @@ function analyzeBriefSync(inputText) {
     detectedDays,
     detectedRegions,
     productionType,
-    crewType
+    crewType,
+    language: lang.label
   };
 
   return {
@@ -1222,5 +1362,7 @@ export const helpers = {
   detectEquipment: (text) => {
     const analysis = analyzeBriefSync(text);
     return analysis.suggestions.equipment;
-  }
+  },
+
+  detectLanguage: (text) => detectLanguage(text)
 };
