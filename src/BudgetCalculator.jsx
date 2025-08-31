@@ -338,7 +338,7 @@ const BudgetCalculator = () => {
     music: "Music video: Often an add-on to film. Creative demands, unpredictable hours, and the occasional 'can we set this on fire?' request.",
     fixer: "Fixer: Local facilitation only—not a full crew. Think 'your friendly guide who knows a guy.'",
     "full-crew": "Full service: Complete crew, production, and logistics.",
-    "tech-equipment": "Camera, lighting, grip packages, and technicians.",
+    "tech-equipment": "Camera, lighting, grip packages, and technicians. Whatever fits your budget and production.",
     creatives: "Adds on a DOP and for bigger productions, a director. Works well for remote shoots or if you just want us to make some magic.",
     scout: "Location scouting: Locations move and change, so even with a big database it's worth getting out there.",
     postproduction: "Post-production: Editing, grading, and sound—where we fix it in post.",
@@ -361,7 +361,7 @@ const BudgetCalculator = () => {
   const serviceRequirements = [
     { id: 'fixer', label: 'Fixer' },
     { id: 'full-crew', label: 'Full Crew' },
-    { id: 'tech-equipment', label: 'Shooting Equipment' },
+    { id: 'tech-equipment', label: 'Tech Equipment' },
     { id: 'creatives', label: 'Creatives' },
     { id: 'scout', label: 'Scout' },
     { id: 'postproduction', label: 'Post-prod' },
@@ -673,7 +673,13 @@ const BudgetCalculator = () => {
 
   // Handle applying smart intake suggestions
   const handleSmartIntakeApply = (suggestions) => {
-    setKeywords(suggestions.keywords);
+    // Ensure 'tech-equipment' is automatically included when 'creatives' is present
+    const k = Array.isArray(suggestions.keywords) ? [...suggestions.keywords] : [];
+    if (k.includes('creatives') && !k.includes('tech-equipment')) {
+      k.push('tech-equipment');
+    }
+
+    setKeywords(k);
     setEquipment(suggestions.equipment);
     setDaysInOslo(suggestions.daysInOslo);
     setDaysOutOfOslo(suggestions.daysOutOfOslo);
@@ -768,7 +774,7 @@ const BudgetCalculator = () => {
   const maximumBudget = calculateMaximumBudget();
   const recommendedBudget = calculateRecommendedBudget();
 
-  // Toggle keyword with special handling for fixer + full-crew
+  // Toggle keyword with special handling for fixer + full-crew and creatives/tech-equipment
   const toggleKeyword = (keywordId) => {
     let newKeywords = [...keywords];
     
@@ -776,16 +782,21 @@ const BudgetCalculator = () => {
     if (keywordId === 'full-crew' && !keywords.includes(keywordId) && keywords.includes('fixer')) {
       newKeywords = newKeywords.filter(id => id !== 'fixer');
     }
-    
     if (keywordId === 'fixer' && !keywords.includes(keywordId) && keywords.includes('full-crew')) {
       newKeywords = newKeywords.filter(id => id !== 'full-crew');
     }
-    
+
+    const wasSelected = keywords.includes(keywordId);
+
     // Toggle the requested keyword
-    if (keywords.includes(keywordId)) {
+    if (wasSelected) {
       newKeywords = newKeywords.filter(id => id !== keywordId);
     } else {
       newKeywords.push(keywordId);
+      // Rule: If 'creatives' is turned on, also auto-enable 'tech-equipment' (but allow manual removal later)
+      if (keywordId === 'creatives' && !newKeywords.includes('tech-equipment')) {
+        newKeywords.push('tech-equipment');
+      }
     }
     
     setKeywords(newKeywords);
