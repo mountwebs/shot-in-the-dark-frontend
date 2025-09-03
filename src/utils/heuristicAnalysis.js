@@ -1123,6 +1123,18 @@ function analyzeBriefSync(inputText) {
   }
 
   // ------------------------------
+  // If creatives are selected, assume a baseline technical equipment package
+  // ------------------------------
+  if (includeCreatives) {
+    const techSet = new Set(['drone','underwater','steadicam','jib','roadblock','lowloader','specialized']);
+    const hasTech = equipment.some(e => techSet.has(e.type));
+    if (!hasTech) {
+      const totalPlannedDays = Math.max(1, (daysInOslo + daysOutOfOslo) || detectedDays || 1);
+      equipment.push({ type: 'specialized', days: totalPlannedDays });
+      details.reasons.push('Creatives selected → adding baseline technical equipment package (specialized)');
+    }
+  }
+  // ------------------------------
   // INTERNATIONAL DETECTION
   // ------------------------------
   const internationalPatterns = {

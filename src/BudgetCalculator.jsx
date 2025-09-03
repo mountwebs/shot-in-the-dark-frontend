@@ -113,7 +113,7 @@ const SmartIntake = ({ onApply, onContinue, initialText = "", onTextChange }) =>
         <Brain className="h-5 w-5 text-[#6f655c]" />
       </div>
       <div className="text-left">
-        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Step 1. Frontend</h3>
+        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Frontend suggestions</h3>
         <p className="text-sm text-[#6f655c]">
         The brief can serve as a starting point for your inputs, but any changes you make will override it. There’s no need to go back and adjust the original text.        </p>
       </div>
@@ -124,7 +124,7 @@ const SmartIntake = ({ onApply, onContinue, initialText = "", onTextChange }) =>
         <span className="text-lg sm:text-xl">⚡</span>
       </div>
       <div className="text-left">
-        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Step 2. Backend Budget Engine</h3>
+        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Backend Budget Engine</h3>
         <p className="text-sm text-[#6f655c]">
           Regardless of the changes you do in the inputs, the brief will be use AI to ajust the final budget to make it more precise. 
         </p>
@@ -140,7 +140,7 @@ const SmartIntake = ({ onApply, onContinue, initialText = "", onTextChange }) =>
             <div className="space-y-4">
               <label className="block">
                 <span className="text-sm font-medium text-[#6f655c] mb-2 block">
-                  Paste project details
+                  Write project details 
                 </span>
                 <textarea
   value={text}
@@ -341,7 +341,7 @@ const BudgetCalculator = () => {
     "tech-equipment": "Camera, lighting, grip packages, and technicians. Whatever fits your budget and production.",
     creatives: "Adds on a DOP and for bigger productions, a director. Works well for remote shoots or if you just want us to make some magic.",
     scout: "Location scouting: Locations move and change, so even with a big database it's worth getting out there.",
-    postproduction: "Post-production: Editing, grading, and sound—where we fix it in post.",
+    // postproduction: "Post-production: Editing, grading, and sound—where we fix it in post.",
     "local-talent": "Local talent: Casting of performers and extras—the friendly faces that make scenes feel genuine.",
     "remote-shoot": "Remote filming: Extra technical setup so you can direct from your sofa, coffee in hand."
   };
@@ -364,7 +364,7 @@ const BudgetCalculator = () => {
     { id: 'tech-equipment', label: 'Tech Equipment' },
     { id: 'creatives', label: 'Creatives' },
     { id: 'scout', label: 'Scout' },
-    { id: 'postproduction', label: 'Post-prod' },
+    //{ id: 'postproduction', label: 'Post-prod' },
     { id: 'local-talent', label: 'Casting' },
     { id: 'remote-shoot', label: 'Remote Shoot' }
   ];
@@ -1134,13 +1134,13 @@ const BudgetCalculator = () => {
                         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white flex items-center justify-center mr-3 sm:mr-4 border border-[#eeebe7] flex-shrink-0 shadow-sm">
                           <span className="text-lg sm:text-xl">📩</span>
                         </div>
-                        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26]">Get the budget to your inbox.</h3>
+                        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26]">Get the budget to your inbox</h3>
                       </div>
                       <div className="flex items-center justify-center sm:justify-start">
                         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white flex items-center justify-center mr-3 sm:mr-4 border border-[#eeebe7] flex-shrink-0 shadow-sm">
                           <span className="text-lg sm:text-xl">🌍</span>
                         </div>
-                        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26]">Understand your own production.</h3>
+                        <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26]">More time to explore Norway</h3>
                       </div>
                     </div>
                   </div>
