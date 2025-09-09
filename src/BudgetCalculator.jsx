@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, Check, Upload, Brain, ArrowRight } from 'lucide-react';
+import { Mail, Check, Upload, Brain, ArrowRight, X } from 'lucide-react';
 import Logo from './assets/Logo 3.png';
 import LogoCalc from './assets/Logo calc.png';
 
@@ -15,21 +15,88 @@ import { analyzeBrief } from './utils/heuristicAnalysis.js';
 
 // Import currency utilities
 import { formatCurrency, EXCHANGE_RATES } from './currency-utils';
+// PDF text extraction (client-side) using pdfjs-dist (Vite-friendly)
+import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 // Create an array of all images
 const images = [Work1, Work2, Work3, Work4, Work5];
 
 // Smart Intake Component (TEXT-ONLY)
-const SmartIntake = ({ onApply, onContinue, initialText = "", onTextChange }) => {
+const SmartIntake = ({ onApply, onContinue, initialText = "", onTextChange, onPdfTextChange, initialPdfText = "", initialPdfMeta = null, onPdfMetaChange }) => {
   const [text, setText] = useState(initialText);
   const [loading, setLoading] = useState(false);
   const [resp, setResp] = useState(null);
   const [error, setError] = useState("");
+  const [pdfText, setPdfText] = useState(initialPdfText || "");
+  const [pdfMeta, setPdfMeta] = useState(initialPdfMeta || null); // { filename, pages, chars } 
 
   // keep local state in sync with parent
   useEffect(() => {
     setText(initialText || "");
   }, [initialText]);
+
+  useEffect(() => {
+    setPdfText(initialPdfText || "");
+  }, [initialPdfText]);
+
+  useEffect(() => {
+    setPdfMeta(initialPdfMeta || null);
+  }, [initialPdfMeta]);
+
+  // --- PDF -> Text helpers ---
+  const extractTextFromPdf = async (file) => {
+    const ab = await file.arrayBuffer();
+    const task = getDocument({ data: ab });
+    const pdf = await task.promise;
+    let out = '';
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const content = await page.getTextContent();
+      const strings = content.items.map((it) => it.str);
+      out += strings.join(' ') + '\n\n';
+    }
+    // Basic cleanup: collapse whitespace & remove common hyphen line-breaks
+    out = out
+      .replace(/(\w)-\s+(\w)/g, '$1$2')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+    return { text: out, pages: pdf.numPages };
+  };
+
+  const handlePdfChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      setError('Please upload a PDF file.');
+      e.target.value = '';
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const { text: extracted, pages } = await extractTextFromPdf(file);
+      setPdfText(extracted);
+      setPdfMeta({ filename: file.name, pages, chars: extracted.length });
+      onPdfMetaChange?.({ filename: file.name, pages, chars: extracted.length });
+      onPdfTextChange?.(extracted); // ⇦ send opp til parent
+    } catch (err) {
+      console.error('PDF parse error:', err);
+      setError('Could not read the PDF. Please try another file.');
+    } finally {
+      setLoading(false);
+      e.target.value = ''; // reset input
+    }
+  };
+
+  const clearPdf = () => {
+    setPdfText('');
+    setPdfMeta(null);
+    onPdfMetaChange?.(null);
+    onPdfTextChange?.('');
+  };
 
   // Auto-apply (samme mapping som du har i dag)
   const autoApply = (result) => {
@@ -73,12 +140,15 @@ const SmartIntake = ({ onApply, onContinue, initialText = "", onTextChange }) =>
     setResp(null);
 
     try {
-      const textContent = (text || "").trim();
-      if (textContent.length < 40) {
-        throw new Error("Please paste at least 40 characters of project details.");
-      }
+      const manual = (text || "").trim();
+const pdf = (pdfText || "").trim();
+const combined = [manual, pdf].filter(Boolean).join("\n\n");
 
-      const result = await analyzeBrief(textContent);
+if (combined.length < 40) {
+  throw new Error("Please paste text or upload a PDF with at least 40 characters.");
+}
+
+const result = await analyzeBrief(combined);
       setResp(result);
 
       if ((result.confidence ?? 0) >= 0.75) {
@@ -134,14 +204,39 @@ const SmartIntake = ({ onApply, onContinue, initialText = "", onTextChange }) =>
 </div>
 
         {/* RIGHT INPUT (TEXT ONLY) */}
-        <div className="w-full lg:w-1/2 bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-[#eeebe7]">
-          <div className="space-y-6">
+        <div className="w-full lg:w-5/12 bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-[#eeebe7]">
+          <div className="space-y-4">
             {/* Text input */}
             <div className="space-y-4">
+              {/* PDF upload (text extraction only) */}
+              <div className="mb-2">
+                <label className="w-full flex justify-center items-center gap-2 bg-[#f8f7f5] text-[#2d2a26] py-3 px-6 rounded-xl hover:bg-[#f1f0ee] transition-colors cursor-pointer">
+                  <Upload className="h-5 w-5" />
+                  <span>Upload brief (PDF)</span>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handlePdfChange}
+                    className="hidden"
+                  />
+                </label>
+                {pdfMeta && (
+                  <div className="mt-2 flex items-center justify-between rounded-lg border border-[#d3efe0] bg-[#f0fdf4] px-3 py-2">
+                    <div className="flex items-center gap-2 text-[#166534]">
+                      <Check className="h-4 w-4" />
+                      <span className="text-sm">
+                        {pdfMeta.filename}
+                        {typeof pdfMeta.pages === 'number' ? ` • ${pdfMeta.pages} pages` : ''}
+                        {typeof pdfMeta.chars === 'number' ? ` • ${pdfMeta.chars.toLocaleString()} chars` : ''}
+                      </span>
+                    </div>
+                    <button type="button" onClick={clearPdf} className="text-[#166534] hover:opacity-80" aria-label="Remove uploaded PDF">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
               <label className="block">
-                <span className="text-sm font-medium text-[#6f655c] mb-2 block">
-                  Write project details 
-                </span>
                 <textarea
   value={text}
   onChange={(e) => {
@@ -160,7 +255,7 @@ const SmartIntake = ({ onApply, onContinue, initialText = "", onTextChange }) =>
             <div className="flex flex-col gap-3">
               <button
                 onClick={handleSuggest}
-                disabled={loading || text.trim().length < 40}
+                disabled={loading || ((text.trim().length < 40) && (!pdfText || pdfText.trim().length < 40))}
                 className="w-full flex justify-center items-center gap-2 bg-[#47403a] text-white py-3 px-6 rounded-xl hover:bg-[#35302b] transition-colors disabled:opacity-60"
               >
                 {loading ? (
@@ -181,7 +276,7 @@ const SmartIntake = ({ onApply, onContinue, initialText = "", onTextChange }) =>
 
               <button
   onClick={() => onContinue?.(text)}
-  className="w-full flex justify-center items-center gap-2 bg-[#f8f7f5] text-[#2d2a26] py-3 px-6 rounded-XL hover:bg-[#f1f0ee] transition-colors"
+  className="w-full flex justify-center items-center gap-2 bg-[#f8f7f5] text-[#2d2a26] py-3 px-6 rounded-xl hover:bg-[#f1f0ee] transition-colors"
 >
   Continue
   <ArrowRight className="h-4 w-4" />
@@ -298,6 +393,8 @@ const Tooltip = ({ content, children, delay = 1000 }) => {
 const BudgetCalculator = () => {
   // Get a random image on component mount
   const [randomImage, setRandomImage] = useState('');
+  const [smartPdfText, setSmartPdfText] = useState('');
+  const [smartPdfMeta, setSmartPdfMeta] = useState(null);
   const [smartText, setSmartText] = useState('');
   
   useEffect(() => {
@@ -933,7 +1030,10 @@ const BudgetCalculator = () => {
       locations,
       keywords,
       equipment,
-      ...(smartText?.trim() ? { brief: smartText.trim() } : {}),
+      ...(() => {
+        const combinedBrief = [smartText?.trim(), smartPdfText?.trim()].filter(Boolean).join("\n\n");
+        return combinedBrief ? { brief: combinedBrief } : {};
+      })(),
     };
 
     console.log("Submitting form data:", formData);
@@ -1117,7 +1217,7 @@ const BudgetCalculator = () => {
                 {/* INTRO SECTION */}
                 <div className="flex flex-col lg:flex-row items-center gap-12">
                   {/* LEFT TEXT - Center on mobile */}
-                  <div className="w-full lg:w-1/2 text-center sm:text-left max-w-[650px] mx-auto">
+                  <div className="w-full lg:w-7/12 text-center sm:text-left max-w-[760px] mx-auto">
                     <p className="text-sm font-medium text-[#6f655c] uppercase mb-3">
                       A free budgeting service for service productions
                     </p>
@@ -1166,13 +1266,16 @@ const BudgetCalculator = () => {
             {/* STEP 2 - SMART INTAKE */}
             {step === 2 && (
               <SmartIntake
-  onApply={handleSmartIntakeApply}
-  onContinue={(t) => { setSmartText(t); handleStepChange(3); }}
-  initialText={smartText}
-  onTextChange={setSmartText}
-/>
-  
-)}
+                onApply={handleSmartIntakeApply}
+                onContinue={(t) => { setSmartText(t); handleStepChange(3); }}
+                initialText={smartText}
+                onTextChange={setSmartText}
+                onPdfTextChange={setSmartPdfText}
+                initialPdfText={smartPdfText}
+                initialPdfMeta={smartPdfMeta}
+                onPdfMetaChange={setSmartPdfMeta}
+              />
+            )}
 
 
 
