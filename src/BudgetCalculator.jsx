@@ -438,7 +438,7 @@ const BudgetCalculator = () => {
     "tech-equipment": "Camera, lighting, grip packages, and technicians. Whatever fits your budget and production.",
     creatives: "Adds on a DOP and for bigger productions, a director. Works well for remote shoots or if you just want us to make some magic.",
     scout: "Location scouting: Locations move and change, so even with a big database it's worth getting out there.",
-    // postproduction: "Post-production: Editing, grading, and sound—where we fix it in post.",
+    postproduction: "Post-production: Editing, grading ... we fix it in post.",
     "local-talent": "Local talent: Casting of performers and extras—the friendly faces that make scenes feel genuine.",
     "remote-shoot": "Remote filming: Extra technical setup so you can direct from your sofa, coffee in hand."
   };
@@ -461,7 +461,7 @@ const BudgetCalculator = () => {
     { id: 'tech-equipment', label: 'Tech Equipment' },
     { id: 'creatives', label: 'Creatives' },
     { id: 'scout', label: 'Scout' },
-    //{ id: 'postproduction', label: 'Post-prod' },
+    { id: 'postproduction', label: 'Post Prod' },
     { id: 'local-talent', label: 'Casting' },
     { id: 'remote-shoot', label: 'Remote Shoot' }
   ];
