@@ -509,6 +509,86 @@ async function refineWithOnlineGeocode(result, text) {
  * @returns {Array} returns.details.reasons - Liste med forklaringer
  * @returns {Object} returns.details.scores - Scorer per kategori
  */
+// --- HINTS PARSER -----------------------------------------------------
+// Syntax example (place anywhere in text, typically first line):
+// HINTS: productionType=commercial; crew=fullCrew; days=3; locations=2; equipment=drone:2, steadicam:1; includeCreatives=true; includeScout=yes
+function parseHints(text = '') {
+  const out = {};
+  if (!text || typeof text !== 'string') return out;
+  const m = text.match(/\bHINTS\s*:\s*([^\n]+)/i);
+  if (!m) return out;
+  const raw = m[1];
+
+  // Split on ; and , but keep comma-separated for equipment only
+  const parts = raw.split(/\s*;\s*/).filter(Boolean);
+
+  const toBool = (v) => {
+    const s = String(v).trim().toLowerCase();
+    return s === 'true' || s === 'yes' || s === '1';
+  };
+  const toInt = (v) => {
+    const n = parseInt(String(v).trim(), 10);
+    return Number.isFinite(n) ? n : undefined;
+  };
+
+  parts.forEach(p => {
+    const [kRaw, vRaw = ''] = p.split(/\s*=\s*/);
+    if (!kRaw) return;
+    const k = kRaw.trim().toLowerCase();
+    const v = vRaw.trim();
+
+    if (!v) return;
+
+    switch (k) {
+      case 'productiontype':
+        out.productionType = v.toLowerCase();
+        break;
+      case 'crew':
+      case 'crewtype':
+        out.crewType = v.toLowerCase();
+        break;
+      case 'includecreatives':
+        out.includeCreatives = toBool(v);
+        break;
+      case 'includescout':
+        out.includeScout = toBool(v);
+        break;
+      case 'days':
+        out.days = toInt(v);
+        break;
+      case 'daysinoslo':
+        out.daysInOslo = toInt(v);
+        break;
+      case 'daysoutofoslo':
+        out.daysOutOfOslo = toInt(v);
+        break;
+      case 'locations':
+        out.locations = toInt(v);
+        break;
+      case 'budgetnok':
+        out.budgetNOK = toInt(v);
+        break;
+      case 'equipment': {
+        // equipment=drone:2, steadicam:1, jib
+        const items = v.split(/\s*,\s*/).filter(Boolean);
+        out.equipment = items.map(item => {
+          const [typeRaw, daysRaw] = item.split(/\s*:\s*/);
+          const type = (typeRaw || '').toLowerCase();
+          const days = toInt(daysRaw);
+          return { type, days: days || 1 };
+        }).filter(e => e.type);
+        break;
+      }
+      default:
+        // ignore unknown keys to be forward-compatible
+        break;
+    }
+  });
+
+  return out;
+}
+// --- END HINTS PARSER -------------------------------------------------
+
 function analyzeBriefSync(inputText) {
   if (!inputText || typeof inputText !== 'string') {
     return {
@@ -539,6 +619,8 @@ function analyzeBriefSync(inputText) {
 
   // Language detection
   const lang = detectLanguage(inputText);
+  // Parse inline hints
+  const hints = parseHints(inputText);
 
   // Helper funksjoner
   const has = (regex) => regex.test(normalizedText);
@@ -1161,6 +1243,71 @@ function analyzeBriefSync(inputText) {
   });
 
   // ------------------------------
+  // APPLY HINTS (minimums/directives) before budget calculation
+  // ------------------------------
+  if (hints.productionType && ['film','commercial','stills','documentary'].includes(hints.productionType)) {
+    productionType = hints.productionType;
+    details.reasons.push(`Hint: productionType=${hints.productionType}`);
+  }
+  if (hints.crewType && ['fullcrew','fixer'].includes(hints.crewType)) {
+    // normalize to camelCase used internally
+    crewType = hints.crewType === 'fullcrew' ? 'fullCrew' : 'fixer';
+    details.reasons.push(`Hint: crewType=${crewType}`);
+  }
+  if (typeof hints.includeScout === 'boolean') {
+    includeScout = includeScout || hints.includeScout; // true acts as a minimum
+    details.reasons.push(`Hint: includeScout=${hints.includeScout}`);
+  }
+  if (typeof hints.includeCreatives === 'boolean') {
+    // If true, force on; if false and we previously set true from heuristics, keep true
+    if (hints.includeCreatives) includeCreatives = true;
+    details.reasons.push(`Hint: includeCreatives=${hints.includeCreatives}`);
+  }
+  if (Number.isFinite(hints.daysInOslo)) {
+    daysInOslo = Math.max(daysInOslo, hints.daysInOslo);
+    details.reasons.push(`Hint: daysInOslo ≥ ${hints.daysInOslo}`);
+  }
+  if (Number.isFinite(hints.daysOutOfOslo)) {
+    daysOutOfOslo = Math.max(daysOutOfOslo, hints.daysOutOfOslo);
+    details.reasons.push(`Hint: daysOutOfOslo ≥ ${hints.daysOutOfOslo}`);
+  }
+  if (Number.isFinite(hints.days)) {
+    const currentTotalDays = daysInOslo + daysOutOfOslo;
+    if (currentTotalDays === 0) {
+      // allocate all hinted days to Oslo by default
+      daysInOslo = hints.days;
+      details.reasons.push(`Hint: days=${hints.days} → defaulted to Oslo days`);
+    } else if (currentTotalDays < hints.days) {
+      // bump Oslo days to meet total minimum (keep ratio leaning to Oslo)
+      const diff = hints.days - currentTotalDays;
+      daysInOslo += diff;
+      details.reasons.push(`Hint: days ≥ ${hints.days} → increased Oslo days by ${diff}`);
+    }
+  }
+  if (Number.isFinite(hints.locations)) {
+    locations = Math.max(locations, hints.locations);
+    details.reasons.push(`Hint: locations ≥ ${hints.locations}`);
+  }
+  if (Array.isArray(hints.equipment) && hints.equipment.length) {
+    const map = new Map(equipment.map(e => [e.type, e]));
+    hints.equipment.forEach(eh => {
+      const e = map.get(eh.type);
+      if (!e) {
+        map.set(eh.type, { type: eh.type, days: Math.max(1, eh.days || 1) });
+      } else {
+        e.days = Math.max(e.days || 1, eh.days || 1);
+      }
+    });
+    equipment.length = 0;
+    equipment.push(...Array.from(map.values()));
+    details.reasons.push(`Hint: equipment merged (${hints.equipment.map(e => `${e.type}:${e.days || 1}`).join(', ')})`);
+  }
+  // Optional floor for budget if provided (keep heuristic as primary but never under the hint)
+  // if (Number.isFinite(hints.budgetNOK)) {
+  //   budgetNOK = Math.max(budgetNOK || 0, hints.budgetNOK);
+  //   details.reasons.push(`Hint: budget floor ≥ ${hints.budgetNOK} NOK`);
+  // }
+  // ------------------------------
   // BUDGET CALCULATION
   // ------------------------------
   const totalDays = daysInOslo + daysOutOfOslo;
@@ -1224,42 +1371,48 @@ if (daysOutOfOslo > 0 && equipment.length > 0 && CONFIG.additionalCosts.equipmen
   details.reasons.push(`Equipment freight: ${equipment.length} items × ${daysOutOfOslo} day(s) × ${CONFIG.additionalCosts.equipmentFreightPerItemPerOutDay} NOK`);
 }
 
-// Apply domestic and international multipliers
-budgetNOK *= domesticMultiplier;
-budgetNOK *= internationalMultiplier;
+  // Apply domestic and international multipliers
+  budgetNOK *= domesticMultiplier;
+  budgetNOK *= internationalMultiplier;
 
-// Apply global uplifts & contingency to suggest higher budgets (mer aggressivt utenfor Oslo)
-const P = CONFIG.pricingAdjustments;
-if (P) {
-  const complexityFactor = 1 + (P.equipmentComplexityPctPerItem * (equipment.length || 0));
-  budgetNOK = budgetNOK * P.globalUplift * complexityFactor;
+  // Apply global uplifts & contingency to suggest higher budgets (mer aggressivt utenfor Oslo)
+  const P = CONFIG.pricingAdjustments;
+  if (P) {
+    const complexityFactor = 1 + (P.equipmentComplexityPctPerItem * (equipment.length || 0));
+    budgetNOK = budgetNOK * P.globalUplift * complexityFactor;
 
-  if (daysOutOfOslo > 0) {
-    const baseTravel = P.outOfOsloPremiumPct;
-    const step = P.outOfOsloStepPct || 0;
-    const cap = P.outOfOsloMaxPct || (baseTravel + step * 2);
-    const dyn = Math.min(baseTravel + step * Math.max(0, daysOutOfOslo - 1), cap);
-    budgetNOK *= (1 + dyn);
-    details.reasons.push(`Dynamic out-of-Oslo premium (+${Math.round(dyn * 100)}%) for ${daysOutOfOslo} day(s) outside Oslo`);
+    if (daysOutOfOslo > 0) {
+      const baseTravel = P.outOfOsloPremiumPct;
+      const step = P.outOfOsloStepPct || 0;
+      const cap = P.outOfOsloMaxPct || (baseTravel + step * 2);
+      const dyn = Math.min(baseTravel + step * Math.max(0, daysOutOfOslo - 1), cap);
+      budgetNOK *= (1 + dyn);
+      details.reasons.push(`Dynamic out-of-Oslo premium (+${Math.round(dyn * 100)}%) for ${daysOutOfOslo} day(s) outside Oslo`);
+    }
+
+    // Natur/utendørs har ofte mer logistikk/vær-risiko
+    if (hasNature) {
+      budgetNOK *= 1.05;
+      details.reasons.push('Nature/outdoor complexity premium (+5%)');
+    }
+
+    budgetNOK *= (1 + P.contingencyPct);
+
+    const parts = [
+      `+${Math.round((P.globalUplift - 1) * 100)}% base uplift`,
+      `+${Math.round(P.contingencyPct * 100)}% contingency`
+    ];
+    if (equipment.length) parts.push(`+${Math.round(P.equipmentComplexityPctPerItem * 100)}% × ${equipment.length} equipment`);
+    if (domesticMultiplier > 1.0) parts.push(`domestic remote ×${domesticMultiplier.toFixed(2)}`);
+    if (internationalMultiplier > 1.0) parts.push(`international ×${internationalMultiplier.toFixed(2)}`);
+    details.reasons.push(`Pricing factors: ${parts.join(', ')}`);
   }
 
-  // Natur/utendørs har ofte mer logistikk/vær-risiko
-  if (hasNature) {
-    budgetNOK *= 1.05;
-    details.reasons.push('Nature/outdoor complexity premium (+5%)');
+  // Language-based budget tempering: Norwegian briefs trend lower
+  if (lang && lang.isNorwegian) {
+    budgetNOK *= 0.7; // 30% lower than other languages
+    details.reasons.push('Norwegian brief → budget tempered (-30%)');
   }
-
-  budgetNOK *= (1 + P.contingencyPct);
-
-  const parts = [
-    `+${Math.round((P.globalUplift - 1) * 100)}% base uplift`,
-    `+${Math.round(P.contingencyPct * 100)}% contingency`
-  ];
-  if (equipment.length) parts.push(`+${Math.round(P.equipmentComplexityPctPerItem * 100)}% × ${equipment.length} equipment`);
-  if (domesticMultiplier > 1.0) parts.push(`domestic remote ×${domesticMultiplier.toFixed(2)}`);
-  if (internationalMultiplier > 1.0) parts.push(`international ×${internationalMultiplier.toFixed(2)}`);
-  details.reasons.push(`Pricing factors: ${parts.join(', ')}`);
-}
   
   // ------------------------------
   // CONFIDENCE CALCULATION
@@ -1376,5 +1529,7 @@ export const helpers = {
     return analysis.suggestions.equipment;
   },
 
-  detectLanguage: (text) => detectLanguage(text)
+  detectLanguage: (text) => detectLanguage(text),
+
+  parseHints,
 };
