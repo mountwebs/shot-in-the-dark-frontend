@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Mail, Check, Upload, Brain, ArrowRight, X } from 'lucide-react';
 import Logo from './assets/Logo 3.png';
 import LogoCalc from './assets/Logo calc.png';
@@ -423,6 +423,7 @@ const BudgetCalculator = () => {
   const [slideDirection, setSlideDirection] = useState(null);
   const [touchedFields, setTouchedFields] = useState({});
 
+
   // Keyword descriptions
   const keywordDescriptions = {
     film: "Filming: Shooting moving images, the classic way. If both stills and film are selected, the stills part will politely scale down.",
@@ -454,6 +455,47 @@ const BudgetCalculator = () => {
     { id: 'plates', label: 'Plates' },
     { id: 'music', label: 'Music Video' }
   ];
+
+  // Hierarchy for Production Type visibility
+const productionTypeHierarchy = {
+  film: ['documentary','commercial','car','plates','music'],
+  stills: ['fashion','car','plates']
+};
+
+const allProductionTypeIds = productionTypes.map(pt => pt.id);
+
+// Compute which production-type tags should be visible based on current selection
+const getVisibleProductionTypeIds = (selected = []) => {
+  const base = ['film','stills'];
+  const hasFilm = selected.includes('film');
+  const hasStills = selected.includes('stills');
+  let visible = [...base];
+
+  if (hasFilm && hasStills) {
+    visible = Array.from(new Set([
+      ...visible,
+      ...productionTypeHierarchy.film,
+      ...productionTypeHierarchy.stills
+    ]));
+  } else if (hasFilm) {
+    visible = [...visible, ...productionTypeHierarchy.film];
+  } else if (hasStills) {
+    visible = [...visible, ...productionTypeHierarchy.stills];
+  }
+  return visible;
+};
+
+// Remove any selected production-type tags that are not visible under current hierarchy
+const sanitizeProductionKeywords = (selected = []) => {
+  const visible = new Set(getVisibleProductionTypeIds(selected));
+  return selected.filter(id => !allProductionTypeIds.includes(id) || visible.has(id));
+};
+
+  // Visible Production Type tags based on hierarchy and current selection
+const visibleProductionTypeIds = useMemo(
+  () => getVisibleProductionTypeIds(keywords),
+  [keywords]
+);
 
   const serviceRequirements = [
     { id: 'fixer', label: 'Fixer' },
@@ -776,7 +818,8 @@ const BudgetCalculator = () => {
       k.push('tech-equipment');
     }
 
-    setKeywords(k);
+    const cleanedK = sanitizeProductionKeywords(k);
+setKeywords(cleanedK);
     setEquipment(suggestions.equipment);
     setDaysInOslo(suggestions.daysInOslo);
     setDaysOutOfOslo(suggestions.daysOutOfOslo);
@@ -890,13 +933,23 @@ const BudgetCalculator = () => {
       newKeywords = newKeywords.filter(id => id !== keywordId);
     } else {
       newKeywords.push(keywordId);
+      // Rule: If 'full-crew' is turned on, also auto-enable 'creatives' (but allow manual removal later)
+      if (keywordId === 'full-crew' && !newKeywords.includes('creatives')) {
+        newKeywords.push('creatives');
+      }
+      // If 'creatives' is now present (either manually or via full-crew), auto-enable 'tech-equipment' once
+      if (newKeywords.includes('creatives') && !newKeywords.includes('tech-equipment')) {
+        newKeywords.push('tech-equipment');
+      }
       // Rule: If 'creatives' is turned on, also auto-enable 'tech-equipment' (but allow manual removal later)
       if (keywordId === 'creatives' && !newKeywords.includes('tech-equipment')) {
         newKeywords.push('tech-equipment');
       }
     }
     
-    setKeywords(newKeywords);
+    // Enforce hierarchy visibility rules
+    const cleaned = sanitizeProductionKeywords(newKeywords);
+    setKeywords(cleaned);
     
     // Update budget recommendation if needed
     if (totalDays > 0 && budget === 0) {
@@ -1380,20 +1433,28 @@ const BudgetCalculator = () => {
                       <div className="space-y-4">
                         <label className="block text-sm font-medium text-[#6f655c] text-left">Production Type</label>
                         <div className="flex flex-wrap gap-2">
-                          {productionTypes.map(type => (
-                            <Tooltip key={type.id} content={keywordDescriptions[type.id]}>
-                              <button
-                                type="button"
-                                className={`px-3 py-2 text-sm rounded-xl transition-colors ${keywords.includes(type.id)
-                                  ? 'bg-[#47403a] text-white'
-                                  : 'bg-[#f8f7f5] text-[#2d2a26] hover:bg-[#f1f0ee]'
-                                  }`}
-                                onClick={() => toggleKeyword(type.id)}
-                              >
-                                {type.label}
-                              </button>
-                            </Tooltip>
-                          ))}
+                          {productionTypes.map((type) => {
+                            const isVisible = visibleProductionTypeIds.includes(type.id);
+                            const isActive = isVisible && keywords.includes(type.id);
+                            const base = 'px-3 py-2 text-sm rounded-xl transition-colors';
+                            const activeCls = 'bg-[#47403a] text-white';
+                            const idleCls = 'bg-[#f8f7f5] text-[#2d2a26] hover:bg-[#f1f0ee]';
+                            const disabledCls = 'bg-[#f8f7f5] text-[#a39b92] opacity-50 cursor-not-allowed';
+
+                            return (
+                              <Tooltip key={type.id} content={keywordDescriptions[type.id]}>
+                                <button
+                                  type="button"
+                                  disabled={!isVisible}
+                                  aria-disabled={!isVisible}
+                                  className={`${base} ${!isVisible ? disabledCls : (isActive ? activeCls : idleCls)}`}
+                                  onClick={isVisible ? () => toggleKeyword(type.id) : undefined}
+                                >
+                                  {type.label}
+                                </button>
+                              </Tooltip>
+                            );
+                          })}
                         </div>
                       </div>
 
