@@ -167,15 +167,15 @@ const result = await analyzeBrief(combined);
 {/* LEFT TEXT */}
 <div className="w-full lg:w-1/2 text-center sm:text-left max-w-[650px] mx-auto">
   <p className="text-sm font-medium text-[#6f655c] uppercase mb-3">
-    Optional AI-assisted prefill
+    Optional text based AI-assistant
   </p>
 
   <h2 className="text-3xl sm:text-4xl font-bold text-[#2d2a26] leading-tight mb-6">
-    Prompt Assistant
+    AI... If you feel like it.
   </h2>
 
   <p className="text-[#2d2a26] text-base sm:text-lg leading-relaxed mb-8">
-  This is an optional step where we’ve integrated Gemini to assist with production inputs. On the backend, we combine the model’s output with hard-coded cost rules and local expertise. The result is accurate and explainable — not solely driven by AI.  </p>
+  This is an optional step where we’ve integrated Gemini to assist with production inputs. On the backend, we combine the model’s output with hard-coded cost rules and local expertise. The result is accurate and easy to understand — not solely driven by AI.  </p>
 
   <div className="grid grid-cols-1 gap-6 text-[#2d2a26] mb-8">
     <div className="flex items-center justify-center sm:justify-start">
@@ -196,7 +196,7 @@ const result = await analyzeBrief(combined);
       <div className="text-left">
         <h3 className="text-lg sm:text-xl font-semibold text-[#2d2a26] mb-1">Backend Budget Engine</h3>
         <p className="text-sm text-[#6f655c]">
-          Regardless of the changes you do in the inputs, the brief will be use AI to ajust the final budget to make it more precise. 
+          Budget refinement is automated on our backend. Your full treatment isn’t sent to us—only extracted text—because we understand this can be sensitive.
         </p>
       </div>
     </div>
@@ -1272,14 +1272,14 @@ setKeywords(cleanedK);
                   {/* LEFT TEXT - Center on mobile */}
                   <div className="w-full lg:w-7/12 text-center sm:text-left max-w-[760px] mx-auto">
                     <p className="text-sm font-medium text-[#6f655c] uppercase mb-3">
-                      A free budgeting service for service productions
+                      A free budgeting service for productions in Norway
                     </p>
                     <h2 className="text-3xl sm:text-4xl font-bold text-[#2d2a26] leading-tight mb-6">
                       How to get your budget
                     </h2>
                     <p className="text-[#2d2a26] text-base sm:text-lg leading-relaxed mb-8">
-                      Write productions notes on the next slide, and clear inputs on the third. We will instantly generate a reliable
-                      budget estimate based on industry-standard costs, our expertise as well as some voluntary AI. The draft will be
+                      Write productions notes on the next slide, or just inputs on the third. We will instantly generate a reliable
+                      budget estimate based on industry-standard costs, our expertise, as well as some voluntary AI. The draft will be
                       sent directly to your email — and ours — for further review.
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-[#2d2a26] mb-8">
