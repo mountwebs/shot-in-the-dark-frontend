@@ -171,7 +171,7 @@ const result = await analyzeBrief(combined);
   </p>
 
   <h2 className="text-3xl sm:text-4xl font-bold text-[#2d2a26] leading-tight mb-6">
-    AI... If you feel like it.
+    If you feel like AI it
   </h2>
 
   <p className="text-[#2d2a26] text-base sm:text-lg leading-relaxed mb-8">
